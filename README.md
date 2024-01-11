@@ -1,2 +1,2 @@
 # elv-client-py
-Python SDK for the Eluvio Conent Fabric
+Python SDK for the Eluvio Content Fabric 
