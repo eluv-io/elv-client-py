@@ -1,5 +1,5 @@
 
-from typing import Any, Dict, Self
+from typing import Any, Dict
 from typing import List
 
 from .utils import get, build_url
@@ -11,7 +11,7 @@ class ElvClient():
         self.token = static_token
 
     @staticmethod
-    def from_configuration_url(config_url: str, static_token: str="") -> Self:
+    def from_configuration_url(config_url: str, static_token: str=""):
         config = get(config_url)
         fabric_uris = config["network"]["services"]["fabric_api"]
         search_uris = config["network"]["services"]["search_v2"]
