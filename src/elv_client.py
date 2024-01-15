@@ -73,6 +73,44 @@ class ElvClient():
         host = self._get_search_host()
         return self.call_bitcode_method(library_id, object_id, version_hash, "search", query, host=host, representation=True)
     
+    def available_offerings(self, object_id: str=None,  ):
+        offerings_subtree = self.content_object_metadata(object_id=object_id, metadata_subtree="/offerings")
+        res= {}
+        for k in offerings_subtree:
+            res[k] = {"display_name": k}
+        return res
+    
+    def playout_url_hls_clear(self,
+                    object_id: str=None,
+                    clip_start: int=None,
+                    clip_end: int=None
+               ) -> Any:
+    
+        library_id = self.content_object_library_id(object_id)
+        offerings =  self.content_object_metadata(object_id=object_id, metadata_subtree="/offerings")
+        if "default_clear" not in offerings:
+            print("Do not have default clear offering for this object")
+            return None
+        try:
+            playout_formats = offerings["default_clear"]["playout"]["playout_formats"]
+        except:
+            print("Can not get related playout format")
+            return None
+        else:
+            if "hls-clear" not in playout_formats:
+                print("HLS protocal with clear DRM is not available for this content")
+                return None
+            else:
+                host = self._get_host()
+                base = build_url('qlibs', library_id, 'q', object_id)
+                playout = f"rep/playout/default_clear/hls-clear/playlist.m3u8"
+                url = build_url(host, base, playout)
+                url += f"?authorization={self.token}"
+                if clip_start and clip_end:
+                    url = f"{url}&resolve=false&clip_start={clip_start/1000}&clip_end={clip_end/1000}&ignore_trimming=true"
+                return url
+            
+
     def content_object_library_id(self, 
                        object_id: str=None, 
                        version_hash: str=None
