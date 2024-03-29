@@ -63,5 +63,12 @@ def get(url: str, params: Dict[str, Any]=None, headers: Dict[str, str]=None) -> 
 
     return response.json()
 
+def post(url: str, params: Dict[str, Any]=None, headers: Dict[str, str]=None) -> Any:
+    response = requests.post(url, headers=headers, json=params)
+
+    response.raise_for_status()
+
+    return response.json()
+
 def build_url(*args) -> str:
     return "/".join(args)

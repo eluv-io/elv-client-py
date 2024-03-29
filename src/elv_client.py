@@ -2,7 +2,7 @@
 from typing import Any, Dict
 from typing import List
 
-from .utils import get, build_url
+from .utils import get, build_url, post
 
 class ElvClient():
     def __init__(self, fabric_uris: List[str], search_uris: List[str]=[], static_token: str=""):
@@ -61,7 +61,7 @@ class ElvClient():
         url = build_url(host, path)
         headers = {"Authorization": f"Bearer {self.token}"}
 
-        return get(url, params, headers)
+        return post(url, params, headers)
     
     # Search on a given index object
     def search(self, 
