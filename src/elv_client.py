@@ -83,9 +83,19 @@ class ElvClient():
                        object_id: str=None,
                        version_hash: str=None,
                        library_id: str=None) -> Dict[str, str]:
-        url = build_url('q', version_hash if version_hash else object_id)
+        url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
-        url = build_url(self._get_host(), url)
+        url = build_url(url, 'q', version_hash if version_hash else object_id)
+        headers = {"Authorization": f"Bearer {self.token}"}
+        return get(url, headers=headers)
+    
+    def content_object_versions(self,
+                       object_id: str=None,
+                       library_id: str=None) -> Dict[str, Any]:
+        url = self._get_host()
+        if library_id:
+            url = build_url(url, 'qlibs', library_id)
+        url = build_url(url, 'qid', object_id)
         headers = {"Authorization": f"Bearer {self.token}"}
         return get(url, headers=headers)
