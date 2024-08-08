@@ -7,4 +7,4 @@ Python SDK for the Eluvio Content Fabric
 ## Local testing 
 1. `pip install .`
 2. Set auth token for test tenant `export TEST_AUTH_TOKEN=...`
-2.  `cd test && python -m unittest discover -v`
+2.  `python test/test_elv_client.py`

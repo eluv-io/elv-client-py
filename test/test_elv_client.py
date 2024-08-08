@@ -1,69 +1,71 @@
-import unittest
 import os
 import argparse
-import json
+from typing import Any, List, Callable
+
 from src.elv_client import *
+from quick_test_py import Tester
 
-TOK = os.getenv('TEST_AUTH_TOKEN')
-# TODO: tests should point to some demo tenant instead
-CONFIG = 'https://main.net955305.contentfabric.io/config'
+config = {
+    'fabric_config': 'https://main.net955305.contentfabric.io/config',
+    'env_auth_token': 'TEST_AUTH_TOKEN',
+    'objects': {
+        "mezz": {"library":"ilib4JvLVStm2pDMa89332h8tNqUCZvY", 
+                 "12AngryMen": "iq__b7ZBuXBYAqiwCc5oirFZEdfWY6v"},
+        "index": {"library":"ilib2hqtVe6Ngwa7gM4uLMFzjJapJsTd", "qid": "iq__3qRppmKKEJjrsYxgwpKtiejZuout"},
+    }
+}
 
-save_state = False
+def test_versions(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['mezz']['12AngryMen']
+    libid = config['objects']['mezz']['library']
+    t1 = lambda: client.content_object_versions(object_id=qid, library_id=libid)
+    t2 = lambda: client.content_object_versions(object_id=qid)
+    return [t1, t2]
 
-class ElvClientTest(unittest.TestCase):
-    def setUp(self):
-        if TOK is None or CONFIG is None:
-            raise EnvironmentError('Auth token or Config URL not set')
-        if len(os.listdir('test_data')) == 0:
-            raise FileNotFoundError('No test data found, please run `python test_elv_client.py --save_state`')
-        self.client = ElvClient.from_configuration_url(CONFIG, static_token=TOK)
+def test_metadata(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['index']['qid']
+    mezz = config['objects']['mezz']['12AngryMen']
+    lib_mezz = config['objects']['mezz']['library']
+    t1 = lambda: client.content_object_metadata(object_id=qid, select='indexer/config')
+    t2 = lambda: client.content_object_metadata(object_id=qid, metadata_subtree='indexer/config/fabric')
+    t3 = lambda: client.content_object_metadata(object_id=qid, metadata_subtree='indexer/config/fabric', select='root/content')
+    test_resolve = lambda: client.content_object_metadata(object_id=mezz, library_id=lib_mezz,
+                                                           metadata_subtree='video_tags/metadata_tags/0000/metadata_tags/celebrity_detection/tags', resolve_links=True)
+    t5 = lambda: client.content_object_metadata(object_id=mezz, metadata_subtree='video_tags/metadata_tags/0000/metadata_tags/celebrity_detection', select='tags', resolve_links=True)
+    t6 = lambda: client.content_object_metadata(object_id=mezz, 
+                                                           metadata_subtree='video_tags/metadata_tags/0000/metadata_tags/celebrity_detection/tags/0', resolve_links=True)
+    t7 = lambda: client.content_object_metadata(object_id=mezz, 
+                                                           metadata_subtree='video_tags/metadata_tags/0000/metadata_tags/celebrity_detection', remove='tags', resolve_links=True)
+    return [t1, t2, t3, test_resolve, t5, t6, t7]
 
-    def test_versions(self):
-        res = []
-        res.append(self.client.content_object_versions(object_id='iq__44VReNyWedZ1hAACRDBF6TdrBXAE', library_id='ilib31RD8PXrsdvSppy2p78LU3C9JdME'))
-        save_file = 'versions.json'
-        if save_state:
-            record(res, save_file)
-        else:
-            self.validate(res, save_file)
+def test_search(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['index']['qid']
+    def postprocess(out: dict) -> dict:
+        for res in out["results"]:
+            del res['score']
+        return out
+    t1 = lambda: postprocess(client.search(object_id=qid, query={"terms":"Lady Gaga", "limit": 1}))
+    return [t1]
 
-    def test_metadata(self):
-        res = []
-        res.append(self.client.content_object_metadata(object_id='iq__44VReNyWedZ1hAACRDBF6TdrBXAE', metadata_subtree='indexer/config/fabric', select='root'))
-        res.append(self.client.content_object_metadata(object_id='iq__44VReNyWedZ1hAACRDBF6TdrBXAE', select='indexer/config'))
-        res.append(self.client.content_object_metadata(object_id='iq__44VReNyWedZ1hAACRDBF6TdrBXAE', metadata_subtree='indexer/config/fabric'))
-        save_file = 'metadata.json'
-        if save_state:
-            record(res, save_file)
-        else:
-            self.validate(res, save_file)
-
-    def test_search(self):
-        res = []
-        res.append(self.client.search(object_id='iq__2oENKiVcWj9PLnKjYupCw1wduUxj', query={"terms":"hello", "search_fields": ["f_speech_to_text"], "limit": 1}))
-        save_file = 'search.json'
-        if save_state:
-            record(res, save_file)
-        else:
-            self.validate(res, save_file)
-
-    def validate(self, out: List[Any], name: str) -> None:
-        with open(os.path.join('test_data', name), 'r') as fin:
-            data = json.load(fin)
-        for out, ground_truth in zip(out, data):
-            self.assertEqual(out, ground_truth)
-
-def record(out: List[Any], name: str) -> None:
-    with open(os.path.join('test_data', name), 'w') as fout:
-        json.dump(out, fout, indent=4)
-
+def main():
+    cwd = os.path.dirname(os.path.abspath(__file__))
+    tester = Tester(os.path.join(cwd, 'test_data'))
+    TOK = os.getenv(config['env_auth_token'])   
+    client = ElvClient.from_configuration_url(config['fabric_config'], static_token=TOK)
+    tester.register('versions_test', test_cases=test_versions(client))
+    tester.register('metadata_test', test_cases=test_metadata(client))
+    tester.register('search_test', test_cases=test_search(client))
+    if args.verbose:
+        tester.log()
+    if args.record:
+        tester.record()
+    else:
+        tester.validate()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--save_state', action='store_true', default=False, help='Save outputs to ground truth')
-
-    args, unknown = parser.parse_known_args()
-    
-    save_state = args.save_state
-    unittest.main(argv=[__file__] + unknown)
+    parser.add_argument('--record', action='store_true', help='Save outputs to ground truth')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Log results of tests')
+    args = parser.parse_args()
+    main()

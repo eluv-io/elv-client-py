@@ -105,8 +105,8 @@ class ElvClient():
                        object_id: str,
                        library_id: Optional[str]=None) -> Dict[str, Any]:
         url = self._get_host()
-        if library_id:
-            url = build_url(url, 'qlibs', library_id)
+        library_id = library_id if library_id else self.content_object_library_id(object_id)
+        url = build_url(url, 'qlibs', library_id)
         url = build_url(url, 'qid', object_id)
         headers = {"Authorization": f"Bearer {self.token}"}
         return get(url, headers=headers)
