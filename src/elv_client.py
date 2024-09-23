@@ -1,6 +1,7 @@
 
 from typing import Any, Dict
 from typing import List, Optional
+import requests
 
 from .utils import get, build_url, post
 
@@ -41,11 +42,12 @@ class ElvClient():
                                 resolve_links: bool=False
                                 ) -> Any:
         host = self._get_host()
-        if not library_id:
-            library_id = self.content_object_library_id(object_id, version_hash)
         if not object_id and not version_hash:
             raise Exception("Object ID or Version Hash must be specified")
-        url = build_url(host, 'qlibs', library_id, 'q', version_hash if version_hash else object_id, 'meta', metadata_subtree)
+        if not library_id:
+            url = build_url(host, 'q', version_hash if version_hash else object_id, 'meta', metadata_subtree)
+        else:
+            url = build_url(host, 'qlibs', library_id, 'q', version_hash if version_hash else object_id, 'meta', metadata_subtree)
         headers = {"Authorization": f"Bearer {self.token}"}
 
         return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links}, headers)
@@ -103,10 +105,37 @@ class ElvClient():
     
     def content_object_versions(self,
                        object_id: str,
-                       library_id: Optional[str]=None) -> Dict[str, Any]:
+                       library_id: str) -> Dict[str, Any]:
         url = self._get_host()
-        library_id = library_id if library_id else self.content_object_library_id(object_id)
-        url = build_url(url, 'qlibs', library_id)
-        url = build_url(url, 'qid', object_id)
+        if not library_id:
+            raise Exception("Library ID must be specified for listing content versions")
+        url = build_url(url, 'qlibs', library_id, 'qid', object_id)
         headers = {"Authorization": f"Bearer {self.token}"}
         return get(url, headers=headers)
+    
+    def download_part(self,
+                    part_hash: str,
+                    save_path: str, 
+                    library_id: Optional[str]=None,
+                    object_id: Optional[str]=None,
+                    version_hash: Optional[str]=None,
+                    decryption_mode: Optional[str]=None) -> None:
+        url = self._get_host()
+        if decryption_mode and decryption_mode not in ["none", "decrypt", "reencrypt"]:
+            raise Exception("Invalid decryption mode: must be one of 'none', 'decrypt', or 'reencrypt'")
+        if not object_id and not version_hash:
+            raise Exception("Object ID or Version Hash must be specified")
+        if version_hash:
+            qhit = version_hash
+        else:
+            qhit = object_id
+        url = build_url(url, 'qlibs', library_id, 'q', qhit, 'data', part_hash)
+        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/octet-stream"}
+        response = requests.get(url, headers=headers, params={"header-x_decryption_mode": decryption_mode})
+        if response.status_code == 200:
+            with open(save_path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:  
+                        file.write(chunk)
+        else:
+            response.raise_for_status()

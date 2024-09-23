@@ -50,7 +50,11 @@
                                 "type": "string"
                             },
                             "celebrity": {
-                                "options": {},
+                                "options": {
+                                    "nlp": {
+                                        "entity": "PERSON"
+                                    }
+                                },
                                 "paths": [
                                     "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Celebrity Detection.text"
                                 ],
