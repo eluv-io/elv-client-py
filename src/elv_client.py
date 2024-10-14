@@ -41,6 +41,8 @@ class ElvClient():
                                 remove: Optional[str]=None,
                                 resolve_links: bool=False
                                 ) -> Any:
+        if not self.token:
+            raise Exception("No token available")
         host = self._get_host()
         if not object_id and not version_hash:
             raise Exception("Object ID or Version Hash must be specified")
@@ -60,6 +62,8 @@ class ElvClient():
                             params: Dict[str, Any]={},
                             representation: bool=False,
                             host: Optional[str]=None) -> Any:
+        if not self.token:
+            raise Exception("No token available")
         if not object_id and not version_hash:
             raise Exception("Object ID or Version Hash must be specified")
         call_type = 'rep' if representation else 'call'
@@ -81,6 +85,8 @@ class ElvClient():
                version_hash: Optional[str]=None,
                ) -> Any:
         assert query is not None, "Query must be specified"
+        if not self.token:
+            raise Exception("No token available")
         host = self._get_search_host()
         return self.call_bitcode_method("search", library_id=library_id, object_id=object_id, version_hash=version_hash, params=query, host=host, representation=True)
     
@@ -94,6 +100,8 @@ class ElvClient():
                        object_id: Optional[str]=None,
                        version_hash: Optional[str]=None,
                        library_id: Optional[str]=None) -> Dict[str, str]:
+        if not self.token:
+            raise Exception("No token available")
         url = self._get_host()
         if not object_id and not version_hash:
             raise Exception("Object ID or Version Hash must be specified")
@@ -106,6 +114,8 @@ class ElvClient():
     def content_object_versions(self,
                        object_id: str,
                        library_id: str) -> Dict[str, Any]:
+        if not self.token:
+            raise Exception("No token available")
         url = self._get_host()
         if not library_id:
             raise Exception("Library ID must be specified for listing content versions")
@@ -118,20 +128,13 @@ class ElvClient():
                     save_path: str, 
                     library_id: Optional[str]=None,
                     object_id: Optional[str]=None,
-                    version_hash: Optional[str]=None,
-                    decryption_mode: Optional[str]=None) -> None:
+                    version_hash: Optional[str]=None) -> None:
+        if not self.token:
+            raise Exception("No token available")
         url = self._get_host()
-        if decryption_mode and decryption_mode not in ["none", "decrypt", "reencrypt"]:
-            raise Exception("Invalid decryption mode: must be one of 'none', 'decrypt', or 'reencrypt'")
-        if not object_id and not version_hash:
-            raise Exception("Object ID or Version Hash must be specified")
-        if version_hash:
-            qhit = version_hash
-        else:
-            qhit = object_id
-        url = build_url(url, 'qlibs', library_id, 'q', qhit, 'data', part_hash)
-        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/octet-stream"}
-        response = requests.get(url, headers=headers, params={"header-x_decryption_mode": decryption_mode})
+        url = build_url(url, 'q', version_hash if version_hash else object_id, 'rep', 'parts_download')
+        params = {"part_hash": part_hash}
+        response = requests.get(url, params=params, headers={"Authorization": f"Bearer {self.token}"})
         if response.status_code == 200:
             with open(save_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):

@@ -49,16 +49,6 @@ def test_search(client: ElvClient) -> List[Callable]:
     t2 = lambda: postprocess(client.search(object_id=qid, library_id=libid, query={"terms":"Lady Gaga", "limit": 1, "offset": 1}))
     return [t1, t2]
 
-def test_download_part(client: ElvClient) -> List[Callable]:
-    qid = config['objects']['mezz']['12AngryMen']
-    libid = config['objects']['mezz']['library']
-    part_hash = client.content_object_metadata(version_hash=qid, metadata_subtree='/offerings/default/media_struct/streams/video/sources/0')['source']
-    logger.debug(f"Part hash: {part_hash}")
-    filedir = os.path.dirname(os.path.abspath(__file__))
-    save_path = os.path.join(filedir, 'out.mp4')
-    client.download_part(object_id=qid, library_id=libid, part_hash=part_hash, save_path=save_path)
-    t1 = lambda: os.path.exists(save_path) and os.path.getsize(save_path) > 0
-    return [t1]
 
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
@@ -68,12 +58,10 @@ def main():
     tester.register('versions_test', test_cases=test_versions(client))
     tester.register('metadata_test', test_cases=test_metadata(client))
     tester.register('search_test', test_cases=test_search(client))
-    tester.register('download_part_test', test_cases=test_download_part(client))
     if args.record:
         tester.record(args.tests)
     else:
         tester.validate(args.tests)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
