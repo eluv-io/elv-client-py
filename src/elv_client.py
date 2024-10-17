@@ -1,6 +1,7 @@
 
 from typing import Any, Dict
 from typing import List, Optional
+from loguru import logger
 import requests
 
 from .utils import get, build_url, post
@@ -14,8 +15,15 @@ class ElvClient():
     @staticmethod
     def from_configuration_url(config_url: str, static_token: str=""):
         config = get(config_url)
+        services = config.get("network", {}).get("services", {})
+        if len(services) == 0:
+            raise Exception("No services available in the configuration")
+        if "fabric_api" not in services:
+            raise Exception("No Fabric URIs available in the configuration")
         fabric_uris = config["network"]["services"]["fabric_api"]
-        search_uris = config["network"]["services"]["search_v2"]
+        search_uris = services.get("search_v2", [])
+        if len(search_uris) == 0:
+            logger.warning("No Search URIs available in the configuration")
         return ElvClient(fabric_uris, search_uris, static_token)
     
     def set_static_token(self, token: str):
@@ -133,7 +141,7 @@ class ElvClient():
             raise Exception("No token available")
         url = self._get_host()
         url = build_url(url, 'q', version_hash if version_hash else object_id, 'rep', 'parts_download')
-        params = {"part_hash": part_hash}
+        params = {"part_hash": part_hash}#, "authorization": self.token}
         response = requests.get(url, params=params, headers={"Authorization": f"Bearer {self.token}"})
         if response.status_code == 200:
             with open(save_path, 'wb') as file:

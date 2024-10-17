@@ -44,7 +44,9 @@ def main():
     tester = Tester(os.path.join(cwd, 'test_data'))
     TOK = os.getenv(config['env_auth_token'])   
     client = ElvClient([config['fabric_url']], static_token=TOK)
+    client2 = ElvClient.from_configuration_url('https://host-76-74-28-233.contentfabric.io/config?self&qspace=demov3', static_token=TOK)
     tester.register('download_part_test', test_cases=test_download_part(client))
+    tester.register('download_part_test_from_config', test_cases=test_download_part(client2))
     if args.record:
         tester.record(args.tests)
     else:
