@@ -20,9 +20,11 @@ class ElvClient():
             raise Exception("No services available in the configuration")
         if "fabric_api" not in services:
             raise Exception("No Fabric URIs available in the configuration")
-        fabric_uris = config["network"]["services"]["fabric_api"]
+        fabric_uris = services["fabric_api"]
+        if not fabric_uris:
+            raise Exception("No Fabric URIs available in the configuration")
         search_uris = services.get("search_v2", [])
-        if len(search_uris) == 0:
+        if not search_uris:
             logger.warning("No Search URIs available in the configuration")
         return ElvClient(fabric_uris, search_uris, static_token)
     
