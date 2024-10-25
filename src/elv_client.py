@@ -41,11 +41,11 @@ class ElvClient():
             raise Exception("No Search URIs available")
         return self.search_uris[0]
     
-    # TODO: check metadata_subtree
     def content_object_metadata(self, 
                                 library_id: Optional[str]=None, 
                                 object_id: Optional[str]=None, 
                                 version_hash: Optional[str]=None, 
+                                write_token: Optional[str]=None,
                                 metadata_subtree: str="",
                                 select: Optional[str]=None, 
                                 remove: Optional[str]=None,
@@ -53,13 +53,13 @@ class ElvClient():
                                 ) -> Any:
         if not self.token:
             raise Exception("No token available")
-        host = self._get_host()
-        if not object_id and not version_hash:
-            raise Exception("Object ID or Version Hash must be specified")
-        if not library_id:
-            url = build_url(host, 'q', version_hash if version_hash else object_id, 'meta', metadata_subtree)
-        else:
-            url = build_url(host, 'qlibs', library_id, 'q', version_hash if version_hash else object_id, 'meta', metadata_subtree)
+        url = self._get_host()
+        id = write_token or version_hash or object_id
+        if not id:
+            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+        if library_id:
+            url = build_url(url, 'qlibs', library_id)
+        url = build_url(url, 'q', id, 'meta', metadata_subtree)
         headers = {"Authorization": f"Bearer {self.token}"}
 
         return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links}, headers)
@@ -69,17 +69,19 @@ class ElvClient():
                             library_id: Optional[str]=None, 
                             object_id: Optional[str]=None, 
                             version_hash: Optional[str]=None, 
+                            write_token: Optional[str]=None,
                             params: Dict[str, Any]={},
                             representation: bool=False,
                             host: Optional[str]=None) -> Any:
         if not self.token:
             raise Exception("No token available")
-        if not object_id and not version_hash:
-            raise Exception("Object ID or Version Hash must be specified")
+        id = write_token or version_hash or object_id
+        if not id:
+            raise Exception("Object ID, Version Hash, or Write Token must be specified")
         call_type = 'rep' if representation else 'call'
         if not library_id:
             library_id = self.content_object_library_id(object_id, version_hash)
-        path = build_url('qlibs', library_id, 'q', version_hash if version_hash else object_id, call_type, method)
+        path = build_url('qlibs', library_id, 'q', id, call_type, method)
         if host is None:
             host = self._get_host()
         url = build_url(host, path)
@@ -89,27 +91,30 @@ class ElvClient():
     
     # Search on a given index object
     def search(self, 
-               query: Dict[str, Any],
-               library_id: Optional[str]=None, 
-               object_id: Optional[str]=None,
-               version_hash: Optional[str]=None,
+                query: Dict[str, Any],
+                library_id: Optional[str]=None, 
+                object_id: Optional[str]=None,
+                version_hash: Optional[str]=None,
+                write_token: Optional[str]=None
                ) -> Any:
         assert query is not None, "Query must be specified"
         if not self.token:
             raise Exception("No token available")
         host = self._get_search_host()
-        return self.call_bitcode_method("search", library_id=library_id, object_id=object_id, version_hash=version_hash, params=query, host=host, representation=True)
+        return self.call_bitcode_method("search", library_id=library_id, object_id=object_id, version_hash=version_hash, write_token=write_token, params=query, host=host, representation=True)
     
     def content_object_library_id(self, 
                        object_id: Optional[str]=None, 
-                       version_hash: Optional[str]=None
+                       version_hash: Optional[str]=None,
+                       write_token: Optional[str]=None
                        ) -> str:
-        return self.content_object(object_id, version_hash)["qlib_id"]
+        return self.content_object(object_id, version_hash, write_token)["qlib_id"]
 
     def content_object(self,
-                       object_id: Optional[str]=None,
-                       version_hash: Optional[str]=None,
-                       library_id: Optional[str]=None) -> Dict[str, str]:
+                        object_id: Optional[str]=None,
+                        version_hash: Optional[str]=None,
+                        write_token: Optional[str]=None,
+                        library_id: Optional[str]=None) -> Dict[str, str]:
         if not self.token:
             raise Exception("No token available")
         url = self._get_host()
@@ -117,7 +122,10 @@ class ElvClient():
             raise Exception("Object ID or Version Hash must be specified")
         if library_id:
             url = build_url(url, 'qlibs', library_id)
-        url = build_url(url, 'q', version_hash if version_hash else object_id)
+        id = write_token or version_hash or object_id
+        if not id:
+            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+        url = build_url(url, 'q', id)
         headers = {"Authorization": f"Bearer {self.token}"}
         return get(url, headers=headers)
     
@@ -138,12 +146,18 @@ class ElvClient():
                     save_path: str, 
                     library_id: Optional[str]=None,
                     object_id: Optional[str]=None,
-                    version_hash: Optional[str]=None) -> None:
+                    version_hash: Optional[str]=None,
+                    write_token: Optional[str]=None) -> None:
         if not self.token:
             raise Exception("No token available")
         url = self._get_host()
-        url = build_url(url, 'q', version_hash if version_hash else object_id, 'rep', 'parts_download')
-        params = {"part_hash": part_hash}#, "authorization": self.token}
+        if library_id:
+            url = build_url(url, 'qlibs', library_id)
+        id = write_token or version_hash or object_id
+        if not id:
+            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+        url = build_url(url, 'q', id, 'rep', 'parts_download')
+        params = {"part_hash": part_hash}
         response = requests.get(url, params=params, headers={"Authorization": f"Bearer {self.token}"})
         if response.status_code == 200:
             with open(save_path, 'wb') as file:
@@ -152,3 +166,29 @@ class ElvClient():
                         file.write(chunk)
         else:
             response.raise_for_status()
+
+    def merge_metadata(self,
+                    write_token: str,
+                    metadata: Any,
+                    library_id: str,
+                    metadata_subtree: Optional[str]=None) -> Any:
+        url = self._get_host()
+        url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
+        if metadata_subtree:
+            url = build_url(url, metadata_subtree)
+        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
+        response = requests.post(url, headers=headers, json=metadata)
+        response.raise_for_status()
+    
+    def replace_metadata(self,
+                       write_token: str,
+                       metadata: Any,
+                       library_id: str,
+                       metadata_subtree: Optional[str]=None) -> Any:
+        url = self._get_host()
+        url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
+        if metadata_subtree:
+            url = build_url(url, metadata_subtree)
+        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
+        response = requests.put(url, headers=headers, json=metadata)
+        response.raise_for_status()
