@@ -1,111 +1,29 @@
 [
-    {
-        ".": {
-            "type": "directory"
-        },
-        "DomJHvbM7qE.mp4": {
-            ".": {
-                "size": 2679939,
-                "parts": [
-                    0
-                ],
-                "encryption": {
-                    "scheme": "cgck"
-                }
-            }
-        },
-        "dir1": {
+    [
+        {
             ".": {
                 "type": "directory"
             },
-            "test.txt": {
+            "DomJHvbM7qE.mp4": {
                 ".": {
-                    "mime_type": "text/plain",
-                    "size": 11,
+                    "size": 2679939,
                     "parts": [
-                        14
+                        0
                     ],
                     "encryption": {
-                        "scheme": "none"
+                        "scheme": "cgck"
                     }
                 }
-            }
-        },
-        "dir2": {
-            ".": {
-                "type": "directory"
             },
-            "test.json": {
-                ".": {
-                    "mime_type": "application/json",
-                    "size": 18,
-                    "parts": [
-                        15
-                    ],
-                    "encryption": {
-                        "scheme": "none"
-                    }
-                }
-            }
-        },
-        "test.txt": {
-            ".": {
-                "mime_type": "text/plain",
-                "size": 6000,
-                "parts": [
-                    13
-                ],
-                "encryption": {
-                    "scheme": "none"
-                }
-            }
-        },
-        "video_tags": {
-            ".": {
-                "type": "directory"
-            },
-            "frames": {
+            "dir1": {
                 ".": {
                     "type": "directory"
                 },
-                "caption_frames.json": {
+                "test.txt": {
                     ".": {
-                        "size": 9154,
+                        "size": 11,
                         "parts": [
-                            6
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                },
-                "celeb_frames.json": {
-                    ".": {
-                        "size": 3817,
-                        "parts": [
-                            5
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                },
-                "logo_frames.json": {
-                    ".": {
-                        "size": 2,
-                        "parts": [
-                            3
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                },
-                "ocr_frames.json": {
-                    ".": {
-                        "size": 1332,
-                        "parts": [
-                            4
+                            13
                         ],
                         "encryption": {
                             "scheme": "none"
@@ -113,70 +31,15 @@
                     }
                 }
             },
-            "tracks": {
+            "dir2": {
                 ".": {
                     "type": "directory"
                 },
-                "asr.json": {
+                "test.json": {
                     ".": {
-                        "size": 677,
+                        "size": 18,
                         "parts": [
-                            7
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                },
-                "caption.json": {
-                    ".": {
-                        "size": 5215,
-                        "parts": [
-                            11
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                },
-                "celeb.json": {
-                    ".": {
-                        "size": 343,
-                        "parts": [
-                            9
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                },
-                "logo.json": {
-                    ".": {
-                        "size": 2,
-                        "parts": [
-                            12
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                },
-                "ocr.json": {
-                    ".": {
-                        "size": 2,
-                        "parts": [
-                            8
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                },
-                "shot.json": {
-                    ".": {
-                        "size": 618,
-                        "parts": [
-                            10
+                            14
                         ],
                         "encryption": {
                             "scheme": "none"
@@ -184,28 +47,157 @@
                     }
                 }
             },
-            "video-tags-overlay-0000.json": {
+            "video_tags": {
                 ".": {
-                    "size": 16804,
-                    "parts": [
-                        1
-                    ],
-                    "encryption": {
-                        "scheme": "none"
+                    "type": "directory"
+                },
+                "frames": {
+                    ".": {
+                        "type": "directory"
+                    },
+                    "caption_frames.json": {
+                        ".": {
+                            "size": 9154,
+                            "parts": [
+                                6
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "celeb_frames.json": {
+                        ".": {
+                            "size": 3817,
+                            "parts": [
+                                5
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "logo_frames.json": {
+                        ".": {
+                            "size": 2,
+                            "parts": [
+                                3
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "ocr_frames.json": {
+                        ".": {
+                            "size": 1332,
+                            "parts": [
+                                4
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
                     }
-                }
-            },
-            "video-tags-tracks-0000.json": {
-                ".": {
-                    "size": 15285,
-                    "parts": [
-                        2
-                    ],
-                    "encryption": {
-                        "scheme": "none"
+                },
+                "tracks": {
+                    ".": {
+                        "type": "directory"
+                    },
+                    "asr.json": {
+                        ".": {
+                            "size": 677,
+                            "parts": [
+                                7
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "caption.json": {
+                        ".": {
+                            "size": 5215,
+                            "parts": [
+                                11
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "celeb.json": {
+                        ".": {
+                            "size": 343,
+                            "parts": [
+                                9
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "logo.json": {
+                        ".": {
+                            "size": 2,
+                            "parts": [
+                                12
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "ocr.json": {
+                        ".": {
+                            "size": 2,
+                            "parts": [
+                                8
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "shot.json": {
+                        ".": {
+                            "size": 618,
+                            "parts": [
+                                10
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    }
+                },
+                "video-tags-overlay-0000.json": {
+                    ".": {
+                        "size": 16804,
+                        "parts": [
+                            1
+                        ],
+                        "encryption": {
+                            "scheme": "none"
+                        }
+                    }
+                },
+                "video-tags-tracks-0000.json": {
+                    ".": {
+                        "size": 15285,
+                        "parts": [
+                            2
+                        ],
+                        "encryption": {
+                            "scheme": "none"
+                        }
                     }
                 }
             }
+        },
+        "hello world",
+        {
+            "hello": "world"
         }
-    }
+    ]
 ]

@@ -214,18 +214,18 @@ class ElvClient():
         response = requests.post(url, headers=headers, json={"ops": ops})
         response.raise_for_status()
         job_data = response.json()
-        id = job_data["id"]
-        file_job_ids = job_data["jobs"]
-        upload_url = build_url(url, id)
+        job_id, file_job_id = job_data["id"], job_data["jobs"][0]
+        upload_url = build_url(url, job_id, file_job_id)
         headers = {"Authorization": f"Bearer {self.token}",
                    "Accept": "application/json",
                    "Content-Type": "application/octet-stream"}
-        for job in zip(file_job_ids, file_jobs):
-            job_id, file_job = job
-            url = build_url(upload_url, job_id)
-            with open(file_job.local_path, 'rb') as file:
-                response = requests.post(url, headers=headers, data=file)
+        for job in file_jobs:
+            with open(job.local_path, 'rb') as file:
+                response = requests.post(upload_url, headers=headers, data=file)
                 response.raise_for_status()
+        url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'files')
+        response = requests.post(url, headers={"Authorization": f"Bearer {self.token}"})
+        response.raise_for_status()
 
     def list_files(self,
                     library_id: Optional[str]=None,
@@ -244,3 +244,25 @@ class ElvClient():
             url = build_url(url, path)
         headers = {"Authorization": f"Bearer {self.token}"}
         return get(url, headers=headers)
+    
+    def download_file(self,
+                        file_path: str,
+                        dest_path: str,
+                        library_id: Optional[str]=None,
+                        object_id: Optional[str]=None,
+                        version_hash: Optional[str]=None,
+                        write_token: Optional[str]=None,
+    ) -> None:
+        url = self._get_host()
+        if library_id:
+            url = build_url(url, 'qlibs', library_id)
+        id = write_token or version_hash or object_id
+        url = build_url(url, 'q', id, 'files', file_path)
+        headers = {"Authorization": f"Bearer {self.token}"}
+        response = requests.get(url, headers=headers, stream=True)
+        if response.status_code == 200:
+            with open(dest_path, "wb") as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    file.write(chunk)
+        else:
+            response.raise_for_status()

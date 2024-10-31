@@ -1,7 +1,7 @@
 import os
 import argparse
 from typing import Any, List, Callable
-from loguru import logger
+import json
 
 from src.elv_client import *
 from quick_test_py import Tester
@@ -60,7 +60,14 @@ def test_upload_files(client: ElvClient) -> List[Callable]:
         jobs = [ElvClient.FileJob(local_path=os.path.join(filedir, 'test.txt'), out_path='dir1/test.txt', mime_type='text/plain'), \
                 ElvClient.FileJob(local_path=os.path.join(filedir, 'test.json'), out_path='dir2/test.json', mime_type='application/json')]
         client.upload_files(write_token=qwt, library_id=config['libid'], file_jobs=jobs)
-        return client.list_files(write_token=qwt, library_id=config['libid'])
+        res1 = client.list_files(write_token=qwt, library_id=config['libid'])
+        client.download_file(write_token=qwt, library_id=config['libid'], file_path='dir1/test.txt', dest_path='downloaded_test.txt')
+        with open('downloaded_test.txt', 'r') as f:
+            res2 = f.read()
+        client.download_file(write_token=qwt, library_id=config['libid'], file_path='dir2/test.json', dest_path='downloaded_test.json')
+        with open('downloaded_test.json', 'r') as f:
+            res3 = json.load(f)
+        return [res1, res2, res3]
 
     return [t1]
 

@@ -2,6 +2,7 @@ import os
 import argparse
 from typing import Any, List, Callable
 from loguru import logger
+import json
 
 from src.elv_client import *
 from quick_test_py import Tester
@@ -56,6 +57,15 @@ def test_list_files(client: ElvClient) -> List[Callable]:
     t2 = lambda: client.list_files(object_id=qid, library_id=libid, path='video_tags')
     return [t1, t2]
 
+def test_download_file(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['mezz']['12AngryMen']
+    libid = config['objects']['mezz']['library']
+    def t1():
+        client.download_file(object_id=qid, library_id=libid, file_path='video_tags/video-tags-tracks-0000.json', dest_path='downloaded.json')
+        with open('downloaded.json', 'r') as f:
+            return json.load(f)
+    return [t1]
+
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
     tester = Tester(os.path.join(cwd, 'test_data'))
@@ -65,6 +75,7 @@ def main():
     tester.register('metadata_test', test_cases=test_metadata(client))
     tester.register('search_test', test_cases=test_search(client))
     tester.register('list_files_test', test_cases=test_list_files(client))
+    tester.register('download_file_test', test_cases=test_download_file(client))
     if args.record:
         tester.record(args.tests)
     else:
