@@ -49,6 +49,12 @@ def test_search(client: ElvClient) -> List[Callable]:
     t2 = lambda: postprocess(client.search(object_id=qid, library_id=libid, query={"terms":"Lady Gaga", "limit": 1, "offset": 1}))
     return [t1, t2]
 
+def test_list_files(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['mezz']['12AngryMen']
+    libid = config['objects']['mezz']['library']
+    t1 = lambda: client.list_files(object_id=qid, library_id=libid)
+    t2 = lambda: client.list_files(object_id=qid, library_id=libid, path='video_tags')
+    return [t1, t2]
 
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
@@ -58,6 +64,7 @@ def main():
     tester.register('versions_test', test_cases=test_versions(client))
     tester.register('metadata_test', test_cases=test_metadata(client))
     tester.register('search_test', test_cases=test_search(client))
+    tester.register('list_files_test', test_cases=test_list_files(client))
     if args.record:
         tester.record(args.tests)
     else:

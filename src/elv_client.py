@@ -3,6 +3,8 @@ from typing import Any, Dict
 from typing import List, Optional
 from loguru import logger
 import requests
+from dataclasses import dataclass
+import os
 
 from .utils import get, build_url, post
 
@@ -192,3 +194,53 @@ class ElvClient():
         headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
         response = requests.put(url, headers=headers, json=metadata)
         response.raise_for_status()
+
+    @dataclass
+    class FileJob:
+        local_path: str
+        out_path: str
+        mime_type: str
+
+    def upload_files(self,
+                        write_token: str,
+                        library_id: str,
+                        file_jobs: List[FileJob]) -> None:
+        url = self._get_host()
+        url = build_url(url, 'qlibs', library_id, 'q', write_token, 'file_jobs')
+        headers = {"Authorization": f"Bearer {self.token}",
+                   "Accept": "application/json",
+                   "Content-Type": "application/json"}
+        ops = [{"type": "file", "path": job.out_path, "mime_type": job.mime_type, "size": os.path.getsize(job.local_path)} for job in file_jobs]
+        response = requests.post(url, headers=headers, json={"ops": ops})
+        response.raise_for_status()
+        job_data = response.json()
+        id = job_data["id"]
+        file_job_ids = job_data["jobs"]
+        upload_url = build_url(url, id)
+        headers = {"Authorization": f"Bearer {self.token}",
+                   "Accept": "application/json",
+                   "Content-Type": "application/octet-stream"}
+        for job in zip(file_job_ids, file_jobs):
+            job_id, file_job = job
+            url = build_url(upload_url, job_id)
+            with open(file_job.local_path, 'rb') as file:
+                response = requests.post(url, headers=headers, data=file)
+                response.raise_for_status()
+
+    def list_files(self,
+                    library_id: Optional[str]=None,
+                    object_id: Optional[str]=None,
+                    version_hash: Optional[str]=None,
+                    write_token: Optional[str]=None,
+                    path: Optional[str]=None) -> Any:
+        id = write_token or version_hash or object_id
+        if not id:
+            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+        url = self._get_host()
+        if library_id:
+            url = build_url(url, 'qlibs', library_id)
+        url = build_url(url, 'q', id, 'files_list')
+        if path:
+            url = build_url(url, path)
+        headers = {"Authorization": f"Bearer {self.token}"}
+        return get(url, headers=headers)

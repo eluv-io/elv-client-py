@@ -6,6 +6,8 @@ from loguru import logger
 from src.elv_client import *
 from quick_test_py import Tester
 
+# contains tests that depend on write token
+
 config = {
     'fabric_url': 'https://host-154-14-185-100.contentfabric.io/config?self&qspace=main',
     'qid': 'iq__42WgpoYgLTyyn4MSTejY3Y4uj81o',
@@ -49,6 +51,19 @@ def test_set_metadata(client: ElvClient) -> List[Callable]:
     
     return [t1]
 
+def test_upload_files(client: ElvClient) -> List[Callable]:
+    qwt = os.getenv(config['env_write_token'])
+    if not qwt:
+        raise Exception(f"Please set {config['env_write_token']} environment variable")
+    filedir = os.path.dirname(os.path.abspath(__file__))
+    def t1():
+        jobs = [ElvClient.FileJob(local_path=os.path.join(filedir, 'test.txt'), out_path='dir1/test.txt', mime_type='text/plain'), \
+                ElvClient.FileJob(local_path=os.path.join(filedir, 'test.json'), out_path='dir2/test.json', mime_type='application/json')]
+        client.upload_files(write_token=qwt, library_id=config['libid'], file_jobs=jobs)
+        return client.list_files(write_token=qwt, library_id=config['libid'])
+
+    return [t1]
+
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
     tester = Tester(os.path.join(cwd, 'test_data'))
@@ -56,6 +71,7 @@ def main():
     client = ElvClient.from_configuration_url(config['fabric_url'], static_token=TOK)
     tester.register('merge_metadata_test', test_cases=test_merge_metadata(client))
     tester.register('set_metadata_test', test_cases=test_set_metadata(client))
+    tester.register('upload_files_test', test_cases=test_upload_files(client))
     if args.record:
         tester.record(args.tests)
     else:
