@@ -3,6 +3,7 @@ from typing import Any, Dict
 from typing import List, Optional
 from loguru import logger
 import requests
+from requests.exceptions import HTTPError
 from dataclasses import dataclass
 import os
 
@@ -215,6 +216,7 @@ class ElvClient():
         response.raise_for_status()
         job_data = response.json()
         job_id, file_job_id = job_data["id"], job_data["jobs"][0]
+        assert len(job_data["jobs"]) == 1, "Expected only one file job"
         upload_url = build_url(url, job_id, file_job_id)
         headers = {"Authorization": f"Bearer {self.token}",
                    "Accept": "application/json",
@@ -222,7 +224,14 @@ class ElvClient():
         for job in file_jobs:
             with open(job.local_path, 'rb') as file:
                 response = requests.post(upload_url, headers=headers, data=file)
-                response.raise_for_status()
+                try:
+                    response.raise_for_status()
+                except HTTPError as e:
+                    logger.error(f"Failed to upload file {job.local_path}: {e}")
+                    logger.error(f"Error code: {response.status_code}")
+                    logger.error(response.text)
+            logger.info(f"Uploaded file {job.local_path} to {job.out_path}")
+
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'files')
         response = requests.post(url, headers={"Authorization": f"Bearer {self.token}"})
         response.raise_for_status()
