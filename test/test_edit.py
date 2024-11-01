@@ -51,29 +51,41 @@ def test_set_metadata(client: ElvClient) -> List[Callable]:
     
     return [t1]
 
-def test_upload_file(client: ElvClient) -> List[Callable]:
+def test_upload_files(client: ElvClient) -> List[Callable]:
     qwt = os.getenv(config['env_write_token'])
     if not qwt:
         raise Exception(f"Please set {config['env_write_token']} environment variable")
     filedir = os.path.dirname(os.path.abspath(__file__))
     def t1():
-        client.upload_file(write_token=qwt, library_id=config['libid'], local_path=os.path.join(filedir, 'test.txt'), out_path='dir1/test.txt', mime_type='text/plain')
+        jobs = []
+        for path in sorted(os.listdir(os.path.join(filedir, 'test_data', 'caption'))):
+            jobs.append({
+                'local_path': os.path.join(filedir, 'test_data', 'caption', path),
+                'out_path': f'video_tags/caption/{path}',
+                'mime_type': 'application/json'
+            })
+        jobs = [ElvClient.FileJob(**job) for job in jobs]
+        client.upload_files(write_token=qwt, library_id=config['libid'], file_jobs=jobs)
         res1 = client.list_files(write_token=qwt, library_id=config['libid'])
-        client.download_file(write_token=qwt, library_id=config['libid'], file_path='dir1/test.txt', dest_path='downloaded_test.txt')
-        with open('downloaded_test.txt', 'r') as f:
-            res2 = f.read()
+        res2 = []
+        os.makedirs(os.path.join(filedir, 'downloaded'), exist_ok=True)
+        for job in jobs:
+            dest_path = os.path.join(filedir, 'downloaded', f'downloaded_{os.path.basename(job.local_path)}')
+            client.download_file(write_token=qwt, library_id=config['libid'], file_path=job.out_path, dest_path=dest_path)
+            with open(dest_path, 'r') as f:
+                res2.append(json.load(f))
         return [res1, res2]
 
     return [t1]
 
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
-    tester = Tester(os.path.join(cwd, 'test_data'))
+    tester = Tester(os.path.join(cwd, 'test_results'))
     TOK = os.getenv(config['env_auth_token'])   
     client = ElvClient.from_configuration_url(config['fabric_url'], static_token=TOK)
-    tester.register('merge_metadata_test', test_cases=test_merge_metadata(client))
-    tester.register('set_metadata_test', test_cases=test_set_metadata(client))
-    tester.register('upload_file_test', test_cases=test_upload_file(client))
+    tester.register('test_merge_metadata', test_cases=test_merge_metadata(client))
+    tester.register('test_set_metadata', test_cases=test_set_metadata(client))
+    tester.register('test_upload_files', test_cases=test_upload_files(client))
     if args.record:
         tester.record(args.tests)
     else:
