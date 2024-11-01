@@ -31,22 +31,6 @@
                     }
                 }
             },
-            "dir2": {
-                ".": {
-                    "type": "directory"
-                },
-                "test.json": {
-                    ".": {
-                        "size": 18,
-                        "parts": [
-                            14
-                        ],
-                        "encryption": {
-                            "scheme": "none"
-                        }
-                    }
-                }
-            },
             "video_tags": {
                 ".": {
                     "type": "directory"
@@ -195,9 +179,6 @@
                 }
             }
         },
-        "hello world",
-        {
-            "hello": "world"
-        }
+        "hello world"
     ]
 ]

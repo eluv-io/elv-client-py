@@ -196,23 +196,19 @@ class ElvClient():
         response = requests.put(url, headers=headers, json=metadata)
         response.raise_for_status()
 
-    @dataclass
-    class FileJob:
-        local_path: str
-        out_path: str
-        mime_type: str
-
-    def upload_files(self,
-                        write_token: str,
-                        library_id: str,
-                        file_jobs: List[FileJob]) -> None:
+    def upload_file(self,
+                    write_token: str,
+                    library_id: str,
+                    local_path: str,
+                    out_path: str,
+                    mime_type: str) -> None:
         url = self._get_host()
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'file_jobs')
         headers = {"Authorization": f"Bearer {self.token}",
                    "Accept": "application/json",
                    "Content-Type": "application/json"}
-        ops = [{"type": "file", "path": job.out_path, "mime_type": job.mime_type, "size": os.path.getsize(job.local_path)} for job in file_jobs]
-        response = requests.post(url, headers=headers, json={"ops": ops})
+        op = {"type": "file", "path": out_path, "mime_type": mime_type, "size": os.path.getsize(local_path)}
+        response = requests.post(url, headers=headers, json={"ops": [op]})
         response.raise_for_status()
         job_data = response.json()
         job_id, file_job_id = job_data["id"], job_data["jobs"][0]
@@ -221,16 +217,16 @@ class ElvClient():
         headers = {"Authorization": f"Bearer {self.token}",
                    "Accept": "application/json",
                    "Content-Type": "application/octet-stream"}
-        for job in file_jobs:
-            with open(job.local_path, 'rb') as file:
-                response = requests.post(upload_url, headers=headers, data=file)
-                try:
-                    response.raise_for_status()
-                except HTTPError as e:
-                    logger.error(f"Failed to upload file {job.local_path}: {e}")
-                    logger.error(f"Error code: {response.status_code}")
-                    logger.error(response.text)
-            logger.info(f"Uploaded file {job.local_path} to {job.out_path}")
+        with open(local_path, 'rb') as file:
+            response = requests.post(upload_url, headers=headers, data=file)
+            try:
+                response.raise_for_status()
+            except HTTPError as e:
+                logger.error(f"Failed to upload file {local_path}: {e}")
+                logger.error(f"Error code: {response.status_code}")
+                logger.error(response.text)
+                raise e
+        logger.info(f"Uploaded file {local_path} to {out_path}")
 
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'files')
         response = requests.post(url, headers={"Authorization": f"Bearer {self.token}"})
