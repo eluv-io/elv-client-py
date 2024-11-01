@@ -206,6 +206,12 @@ class ElvClient():
                     write_token: str,
                     library_id: str,
                     file_jobs: List[FileJob]) -> None:
+        # strip leading slashes
+        file_jobs = file_jobs[:]
+        for job in file_jobs:
+            if job.out_path.startswith("/"):
+                job.out_path = job.out_path[1:]
+
         path_to_job = {job.out_path: job for job in file_jobs}
 
         # Create upload job
