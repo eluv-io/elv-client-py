@@ -72,3 +72,13 @@ def post(url: str, params: Dict[str, Any]=None, headers: Dict[str, str]=None) ->
 
 def build_url(*args) -> str:
     return "/".join(args)
+
+def get_from_path(data, path, delimiter='/'):
+    if not path or path == "/":
+        return data
+    keys = path.split(delimiter)
+    for key in keys:
+        data = data.get(key)
+        if data is None:
+            return None
+    return data

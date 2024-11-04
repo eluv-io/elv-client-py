@@ -7,7 +7,7 @@ from requests.exceptions import HTTPError
 from dataclasses import dataclass
 import os
 
-from .utils import get, build_url, post
+from .utils import get, build_url, post, get_from_path
 
 class ElvClient():
     def __init__(self, fabric_uris: List[str], search_uris: List[str]=[], static_token: str=""):
@@ -279,7 +279,11 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None,
-                    path: Optional[str]=None) -> Any:
+                    path: Optional[str]="/") -> Any:
+        if path.startswith("/"):
+            path = path[1:]
+        if path.endswith("/"):
+            path = path[:-1]
         id = write_token or version_hash or object_id
         if not id:
             raise Exception("Object ID, Version Hash, or Write Token must be specified")
@@ -290,7 +294,41 @@ class ElvClient():
         if path:
             url = build_url(url, path)
         headers = {"Authorization": f"Bearer {self.token}"}
-        return get(url, headers=headers)
+        response = get(url, headers=headers)
+        response = get_from_path(response, path)
+        result = []
+        for entry, info in response.items():
+            if entry == ".":
+                continue
+            if "type" in info["."] and info["."]["type"] == "directory":
+                result.append(entry + "/")
+            else:
+                result.append(entry)
+        return result
+    
+    def download_directory(self,
+                        dest_path: str,
+                        fabric_path: Optional[str]="/",
+                        library_id: Optional[str]=None,
+                        object_id: Optional[str]=None,
+                        version_hash: Optional[str]=None,
+                        write_token: Optional[str]=None,
+    ) -> None:
+        if not fabric_path.endswith("/"):
+            fabric_path += "/"
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path)
+        entries = self.list_files(library_id, object_id, version_hash, write_token, fabric_path)
+        for entry in entries:
+            if entry.endswith("/"):
+                self.download_directory(fabric_path=f"{fabric_path}{entry}", 
+                                        dest_path=os.path.join(dest_path, entry[:-1]), 
+                                        library_id=library_id, 
+                                        object_id=object_id, 
+                                        version_hash=version_hash, 
+                                        write_token=write_token)
+            else:
+                self.download_file(f"{fabric_path}/{entry}", os.path.join(dest_path, entry), library_id, object_id, version_hash, write_token)
     
     def download_file(self,
                         file_path: str,

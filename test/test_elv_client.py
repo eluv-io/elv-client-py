@@ -3,6 +3,7 @@ import argparse
 from typing import Any, List, Callable
 from loguru import logger
 import json
+import shutil
 
 from src.elv_client import *
 from quick_test_py import Tester
@@ -55,20 +56,44 @@ def test_list_files(client: ElvClient) -> List[Callable]:
     libid = config['objects']['mezz']['library']
     t1 = lambda: client.list_files(object_id=qid, library_id=libid)
     t2 = lambda: client.list_files(object_id=qid, library_id=libid, path='video_tags')
-    return [t1, t2]
+    t3 = lambda: client.list_files(object_id=qid, library_id=libid, path='video_tags/tracks')
+    return [t1, t2, t3]
 
 def test_download_file(client: ElvClient) -> List[Callable]:
     qid = config['objects']['mezz']['12AngryMen']
     libid = config['objects']['mezz']['library']
+    filedir = os.path.dirname(os.path.abspath(__file__))
+    save_path = os.path.join(filedir, 'downloaded.json')
     def t1():
-        client.download_file(object_id=qid, library_id=libid, file_path='video_tags/video-tags-tracks-0000.json', dest_path='downloaded.json')
+        if os.path.exists(save_path):
+            os.remove(save_path)
+        client.download_file(object_id=qid, library_id=libid, file_path='video_tags/video-tags-tracks-0000.json', dest_path=save_path)
         with open('downloaded.json', 'r') as f:
             return json.load(f)
     return [t1]
 
+def test_download_directory(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['mezz']['12AngryMen']
+    libid = config['objects']['mezz']['library']
+    filedir = os.path.dirname(os.path.abspath(__file__))
+    dest_path = os.path.join(filedir, 'downloaded')
+    def t1():
+        if os.path.exists(dest_path):
+            shutil.rmtree(dest_path)
+        client.download_directory(object_id=qid, library_id=libid, fabric_path='/', dest_path=dest_path)
+        with open(f'{filedir}/downloaded/video_tags/video-tags-tracks-0000.json', 'r') as f:
+            return json.load(f)
+    def t2():
+        if os.path.exists(dest_path):
+            shutil.rmtree(dest_path)
+        client.download_directory(object_id=qid, library_id=libid, fabric_path='video_tags', dest_path=dest_path)
+        with open(f'{filedir}/downloaded/video-tags-tracks-0000.json', 'r') as f:
+            return json.load(f)
+    return [t1, t2]
+
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
-    tester = Tester(os.path.join(cwd, 'test_data'))
+    tester = Tester(os.path.join(cwd, 'test_results'))
     TOK = os.getenv(config['env_auth_token'])   
     client = ElvClient.from_configuration_url(config['fabric_config'], static_token=TOK)
     tester.register('versions_test', test_cases=test_versions(client))
@@ -76,6 +101,7 @@ def main():
     tester.register('search_test', test_cases=test_search(client))
     tester.register('list_files_test', test_cases=test_list_files(client))
     tester.register('download_file_test', test_cases=test_download_file(client))
+    tester.register('test_download_directory', test_cases=test_download_directory(client))
     if args.record:
         tester.record(args.tests)
     else:
