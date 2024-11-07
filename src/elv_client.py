@@ -121,8 +121,6 @@ class ElvClient():
         if not self.token:
             raise Exception("No token available")
         url = self._get_host()
-        if not object_id and not version_hash:
-            raise Exception("Object ID or Version Hash must be specified")
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
