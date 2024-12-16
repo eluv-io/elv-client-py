@@ -12,7 +12,7 @@ config = {
     'fabric_url': 'https://host-154-14-185-100.contentfabric.io/config?self&qspace=main',
     'qid': 'iq__42WgpoYgLTyyn4MSTejY3Y4uj81o',
     'libid': 'ilib4JvLVStm2pDMa89332h8tNqUCZvY',
-    'env_auth_token': 'TEST_AUTH_TOKEN',
+    'env_auth_token': 'TEST_AUTH',
     'env_write_token': 'WRITE_TOKEN'
 }
 
