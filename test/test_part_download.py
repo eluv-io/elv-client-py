@@ -9,7 +9,7 @@ from quick_test_py import Tester
 config = {
     'fabric_url': 'http://192.168.96.203',
     'config_url': 'http://192.168.96.203/config?self&qspace=main',
-    'env_auth_token': 'TEST_AUTH_TOKEN',
+    'env_auth_token': 'TEST_AUTH',
     'objects': {
         "mezz": {"library":"ilib4JvLVStm2pDMa89332h8tNqUCZvY", 
                  "qid": "iq__42WgpoYgLTyyn4MSTejY3Y4uj81o"},
@@ -42,7 +42,7 @@ def test_download_part(client: ElvClient) -> List[Callable]:
 
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
-    tester = Tester(os.path.join(cwd, 'test_data'))
+    tester = Tester(os.path.join(cwd, 'test_results'))
     TOK = os.getenv(config['env_auth_token'])   
     client = ElvClient([config['fabric_url']], static_token=TOK)
     client2 = ElvClient.from_configuration_url(config["config_url"], static_token=TOK)

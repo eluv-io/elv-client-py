@@ -10,7 +10,7 @@ from quick_test_py import Tester
 
 config = {
     'fabric_config': 'https://main.net955305.contentfabric.io/config',
-    'env_auth_token': 'TEST_AUTH_TOKEN',
+    'env_auth_token': 'TEST_AUTH',
     'objects': {
         "mezz": {"library":"ilib4JvLVStm2pDMa89332h8tNqUCZvY", 
                  "12AngryMen": "iq__b7ZBuXBYAqiwCc5oirFZEdfWY6v"},
@@ -68,7 +68,7 @@ def test_download_file(client: ElvClient) -> List[Callable]:
         if os.path.exists(save_path):
             os.remove(save_path)
         client.download_file(object_id=qid, library_id=libid, file_path='video_tags/video-tags-tracks-0000.json', dest_path=save_path)
-        with open('downloaded.json', 'r') as f:
+        with open(os.path.join(filedir, 'downloaded.json'), 'r') as f:
             return json.load(f)
     return [t1]
 
