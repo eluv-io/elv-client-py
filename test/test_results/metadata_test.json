@@ -1,0 +1,667 @@
+[
+    {
+        "indexer": {
+            "config": {
+                "fabric": {
+                    "root": {
+                        "content": "iq__3qRppmKKEJjrsYxgwpKtiejZuout",
+                        "library": "ilib2hqtVe6Ngwa7gM4uLMFzjJapJsTd"
+                    }
+                },
+                "indexer": {
+                    "arguments": {
+                        "document": {
+                            "prefix": "/video_tags/metadata_tags/*/metadata_tags/*/tags[*]"
+                        },
+                        "fields": {
+                            "action": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Action Detection.text"
+                                ],
+                                "type": "text"
+                            },
+                            "action_as_string": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Action Detection.text"
+                                ],
+                                "type": "text"
+                            },
+                            "action_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Action Detection"
+                                ],
+                                "type": "json"
+                            },
+                            "asset_type": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.asset_type.tags"
+                                ],
+                                "type": "text"
+                            },
+                            "asset_type_as_string": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.asset_type.tags"
+                                ],
+                                "type": "string"
+                            },
+                            "celebrity": {
+                                "options": {
+                                    "nlp": {
+                                        "entity": "PERSON"
+                                    }
+                                },
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Celebrity Detection.text"
+                                ],
+                                "type": "text"
+                            },
+                            "celebrity_as_string": {
+                                "options": {
+                                    "stats": {
+                                        "histogram": true
+                                    }
+                                },
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Celebrity Detection.text"
+                                ],
+                                "type": "string"
+                            },
+                            "celebrity_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Celebrity Detection"
+                                ],
+                                "type": "json"
+                            },
+                            "characters": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Optical Character Recognition.text"
+                                ],
+                                "type": "text"
+                            },
+                            "characters_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Optical Character Recognition"
+                                ],
+                                "type": "json"
+                            },
+                            "display_title": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.public.asset_metadata.display_title"
+                                ],
+                                "type": "text"
+                            },
+                            "display_title_as_string": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.public.asset_metadata.display_title"
+                                ],
+                                "type": "string"
+                            },
+                            "end_time": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.end_time"
+                                ],
+                                "type": "unsigned"
+                            },
+                            "landmark": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Landmark Recognition.text"
+                                ],
+                                "type": "text"
+                            },
+                            "landmark_as_string": {
+                                "options": {
+                                    "stats": {
+                                        "histogram": true
+                                    }
+                                },
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Landmark Recognition.text"
+                                ],
+                                "type": "string"
+                            },
+                            "landmark_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Landmark Recognition"
+                                ],
+                                "type": "json"
+                            },
+                            "llava": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.LLAVA Caption.text"
+                                ],
+                                "type": "text"
+                            },
+                            "llava_as_string": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.LLAVA Caption.text"
+                                ],
+                                "type": "string"
+                            },
+                            "llava_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.LLAVA Caption"
+                                ],
+                                "type": "json"
+                            },
+                            "logo": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Logo Detection.text"
+                                ],
+                                "type": "text"
+                            },
+                            "logo_as_string": {
+                                "options": {
+                                    "stats": {
+                                        "histogram": true
+                                    }
+                                },
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Logo Detection.text"
+                                ],
+                                "type": "string"
+                            },
+                            "logo_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Logo Detection"
+                                ],
+                                "type": "json"
+                            },
+                            "object": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Object Detection.text"
+                                ],
+                                "type": "text"
+                            },
+                            "object_as_string": {
+                                "options": {
+                                    "stats": {
+                                        "histogram": true
+                                    }
+                                },
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Object Detection.text"
+                                ],
+                                "type": "string"
+                            },
+                            "object_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Object Detection"
+                                ],
+                                "type": "json"
+                            },
+                            "segment": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Segment Labels.text"
+                                ],
+                                "type": "text"
+                            },
+                            "segment_as_string": {
+                                "options": {
+                                    "stats": {
+                                        "histogram": true
+                                    }
+                                },
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Segment Labels.text"
+                                ],
+                                "type": "string"
+                            },
+                            "segment_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Segment Labels"
+                                ],
+                                "type": "json"
+                            },
+                            "speech_to_text": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Speech to Text.text"
+                                ],
+                                "type": "text"
+                            },
+                            "speech_to_text_as_string": {
+                                "options": {
+                                    "stats": {
+                                        "histogram": true
+                                    }
+                                },
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Speech to Text.text"
+                                ],
+                                "type": "string"
+                            },
+                            "speech_to_text_tag": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.text.Speech to Text"
+                                ],
+                                "type": "json"
+                            },
+                            "start_time": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.shot_tags.tags.start_time"
+                                ],
+                                "type": "unsigned"
+                            },
+                            "title_type": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.title_type.tags"
+                                ],
+                                "type": "text"
+                            },
+                            "title_type_as_string": {
+                                "options": {},
+                                "paths": [
+                                    "site_map.searchables.*.video_tags.metadata_tags.*.metadata_tags.title_type.tags"
+                                ],
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "type": "metadata-text"
+                }
+            }
+        }
+    },
+    {
+        "root": {
+            "content": "iq__3qRppmKKEJjrsYxgwpKtiejZuout",
+            "library": "ilib2hqtVe6Ngwa7gM4uLMFzjJapJsTd"
+        }
+    },
+    {
+        "root": {
+            "content": "iq__3qRppmKKEJjrsYxgwpKtiejZuout"
+        }
+    },
+    [
+        {
+            "end_time": 18216,
+            "start_time": 14520,
+            "text": [
+                "Henry Fonda"
+            ]
+        },
+        {
+            "end_time": 45892,
+            "start_time": 44264,
+            "text": [
+                "Henry Fonda"
+            ]
+        },
+        {
+            "end_time": 210760,
+            "start_time": 184976,
+            "text": [
+                "Henry Fonda"
+            ]
+        },
+        {
+            "end_time": 19316,
+            "start_time": 19008,
+            "text": [
+                "Clint Bowyer"
+            ]
+        },
+        {
+            "end_time": 20636,
+            "start_time": 19800,
+            "text": [
+                "Clint Bowyer"
+            ]
+        },
+        {
+            "end_time": 29084,
+            "start_time": 28776,
+            "text": [
+                "Kim Ryeowook"
+            ]
+        },
+        {
+            "end_time": 27236,
+            "start_time": 26400,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 28028,
+            "start_time": 27192,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 28292,
+            "start_time": 27984,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 28556,
+            "start_time": 28248,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 29348,
+            "start_time": 29040,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 33220,
+            "start_time": 30008,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 38500,
+            "start_time": 37136,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 39820,
+            "start_time": 39248,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 59092,
+            "start_time": 55088,
+            "text": [
+                "Lady Gaga"
+            ]
+        },
+        {
+            "end_time": 28556,
+            "start_time": 28248,
+            "text": [
+                "Kurt Busch"
+            ]
+        },
+        {
+            "end_time": 29084,
+            "start_time": 28776,
+            "text": [
+                "Danny Graves"
+            ]
+        },
+        {
+            "end_time": 39028,
+            "start_time": 38720,
+            "text": [
+                "Mike Myers"
+            ]
+        },
+        {
+            "end_time": 64812,
+            "start_time": 64504,
+            "text": [
+                "Angie Best"
+            ]
+        },
+        {
+            "end_time": 92180,
+            "start_time": 89188,
+            "text": [
+                "E. G. Marshall"
+            ]
+        },
+        {
+            "end_time": 137500,
+            "start_time": 137192,
+            "text": [
+                "Ildefonso Falcones"
+            ]
+        },
+        {
+            "end_time": 139128,
+            "start_time": 139040,
+            "text": [
+                "Ildefonso Falcones"
+            ]
+        },
+        {
+            "end_time": 217228,
+            "start_time": 214632,
+            "text": [
+                "Joseph F. Sweeney"
+            ]
+        },
+        {
+            "end_time": 139568,
+            "start_time": 139172,
+            "text": [
+                "Lynda Boyd"
+            ]
+        },
+        {
+            "end_time": 151404,
+            "start_time": 151096,
+            "text": [
+                "Densill Theobald"
+            ]
+        }
+    ],
+    {
+        "tags": [
+            {
+                "end_time": 18216,
+                "start_time": 14520,
+                "text": [
+                    "Henry Fonda"
+                ]
+            },
+            {
+                "end_time": 45892,
+                "start_time": 44264,
+                "text": [
+                    "Henry Fonda"
+                ]
+            },
+            {
+                "end_time": 210760,
+                "start_time": 184976,
+                "text": [
+                    "Henry Fonda"
+                ]
+            },
+            {
+                "end_time": 19316,
+                "start_time": 19008,
+                "text": [
+                    "Clint Bowyer"
+                ]
+            },
+            {
+                "end_time": 20636,
+                "start_time": 19800,
+                "text": [
+                    "Clint Bowyer"
+                ]
+            },
+            {
+                "end_time": 29084,
+                "start_time": 28776,
+                "text": [
+                    "Kim Ryeowook"
+                ]
+            },
+            {
+                "end_time": 27236,
+                "start_time": 26400,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 28028,
+                "start_time": 27192,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 28292,
+                "start_time": 27984,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 28556,
+                "start_time": 28248,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 29348,
+                "start_time": 29040,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 33220,
+                "start_time": 30008,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 38500,
+                "start_time": 37136,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 39820,
+                "start_time": 39248,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 59092,
+                "start_time": 55088,
+                "text": [
+                    "Lady Gaga"
+                ]
+            },
+            {
+                "end_time": 28556,
+                "start_time": 28248,
+                "text": [
+                    "Kurt Busch"
+                ]
+            },
+            {
+                "end_time": 29084,
+                "start_time": 28776,
+                "text": [
+                    "Danny Graves"
+                ]
+            },
+            {
+                "end_time": 39028,
+                "start_time": 38720,
+                "text": [
+                    "Mike Myers"
+                ]
+            },
+            {
+                "end_time": 64812,
+                "start_time": 64504,
+                "text": [
+                    "Angie Best"
+                ]
+            },
+            {
+                "end_time": 92180,
+                "start_time": 89188,
+                "text": [
+                    "E. G. Marshall"
+                ]
+            },
+            {
+                "end_time": 137500,
+                "start_time": 137192,
+                "text": [
+                    "Ildefonso Falcones"
+                ]
+            },
+            {
+                "end_time": 139128,
+                "start_time": 139040,
+                "text": [
+                    "Ildefonso Falcones"
+                ]
+            },
+            {
+                "end_time": 217228,
+                "start_time": 214632,
+                "text": [
+                    "Joseph F. Sweeney"
+                ]
+            },
+            {
+                "end_time": 139568,
+                "start_time": 139172,
+                "text": [
+                    "Lynda Boyd"
+                ]
+            },
+            {
+                "end_time": 151404,
+                "start_time": 151096,
+                "text": [
+                    "Densill Theobald"
+                ]
+            }
+        ]
+    },
+    {
+        "end_time": 18216,
+        "start_time": 14520,
+        "text": [
+            "Henry Fonda"
+        ]
+    },
+    {
+        "label": "Celebrity Detection"
+    }
+]

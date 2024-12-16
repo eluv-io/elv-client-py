@@ -1,0 +1,20 @@
+[
+    [
+        "1fsFQ2gF4oE.mp4",
+        "video_tags/"
+    ],
+    [
+        "frames/",
+        "tracks/",
+        "video-tags-overlay-0000.json",
+        "video-tags-tracks-0000.json"
+    ],
+    [
+        "asr.json",
+        "caption.json",
+        "celeb.json",
+        "logo.json",
+        "ocr.json",
+        "shot.json"
+    ]
+]

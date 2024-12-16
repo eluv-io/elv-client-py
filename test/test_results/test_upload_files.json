@@ -1,0 +1,371 @@
+[
+    [
+        {
+            ".": {
+                "type": "directory"
+            },
+            "DomJHvbM7qE.mp4": {
+                ".": {
+                    "size": 2679939,
+                    "parts": [
+                        0
+                    ],
+                    "encryption": {
+                        "scheme": "cgck"
+                    }
+                }
+            },
+            "video_tags": {
+                ".": {
+                    "type": "directory"
+                },
+                "caption": {
+                    ".": {
+                        "type": "directory"
+                    },
+                    "1_frametags.json": {
+                        ".": {
+                            "size": 332,
+                            "parts": [
+                                13
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "1_tags.json": {
+                        ".": {
+                            "size": 323,
+                            "parts": [
+                                14
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "2_frametags.json": {
+                        ".": {
+                            "size": 374,
+                            "parts": [
+                                15
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "2_tags.json": {
+                        ".": {
+                            "size": 365,
+                            "parts": [
+                                16
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "3_frametags.json": {
+                        ".": {
+                            "size": 117,
+                            "parts": [
+                                17
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "3_tags.json": {
+                        ".": {
+                            "size": 2,
+                            "parts": [
+                                18
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    }
+                },
+                "frames": {
+                    ".": {
+                        "type": "directory"
+                    },
+                    "caption_frames.json": {
+                        ".": {
+                            "size": 9154,
+                            "parts": [
+                                6
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "celeb_frames.json": {
+                        ".": {
+                            "size": 3817,
+                            "parts": [
+                                5
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "logo_frames.json": {
+                        ".": {
+                            "size": 2,
+                            "parts": [
+                                3
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "ocr_frames.json": {
+                        ".": {
+                            "size": 1332,
+                            "parts": [
+                                4
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    }
+                },
+                "tracks": {
+                    ".": {
+                        "type": "directory"
+                    },
+                    "asr.json": {
+                        ".": {
+                            "size": 677,
+                            "parts": [
+                                7
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "caption.json": {
+                        ".": {
+                            "size": 5215,
+                            "parts": [
+                                11
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "celeb.json": {
+                        ".": {
+                            "size": 343,
+                            "parts": [
+                                9
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "logo.json": {
+                        ".": {
+                            "size": 2,
+                            "parts": [
+                                12
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "ocr.json": {
+                        ".": {
+                            "size": 2,
+                            "parts": [
+                                8
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    },
+                    "shot.json": {
+                        ".": {
+                            "size": 618,
+                            "parts": [
+                                10
+                            ],
+                            "encryption": {
+                                "scheme": "none"
+                            }
+                        }
+                    }
+                },
+                "video-tags-overlay-0000.json": {
+                    ".": {
+                        "size": 16804,
+                        "parts": [
+                            1
+                        ],
+                        "encryption": {
+                            "scheme": "none"
+                        }
+                    }
+                },
+                "video-tags-tracks-0000.json": {
+                    ".": {
+                        "size": 15285,
+                        "parts": [
+                            2
+                        ],
+                        "encryption": {
+                            "scheme": "none"
+                        }
+                    }
+                }
+            }
+        },
+        [
+            {
+                "0": [
+                    {
+                        "text": "a drawing of a city .",
+                        "box": [
+                            0.05,
+                            0.05,
+                            0.95,
+                            0.95
+                        ],
+                        "confidence": 1.0
+                    }
+                ],
+                "195": [
+                    {
+                        "text": "a woman with a blue face is reading a book.",
+                        "box": [
+                            0.05,
+                            0.05,
+                            0.95,
+                            0.95
+                        ],
+                        "confidence": 1.0
+                    }
+                ],
+                "528": [
+                    {
+                        "text": "a man in a blue shirt is looking at a paper .",
+                        "box": [
+                            0.05,
+                            0.05,
+                            0.95,
+                            0.95
+                        ],
+                        "confidence": 1.0
+                    }
+                ]
+            },
+            [
+                {
+                    "start_time": 0,
+                    "end_time": 42,
+                    "text": "a drawing of a city .",
+                    "confidence": null
+                },
+                {
+                    "start_time": 8136,
+                    "end_time": 8178,
+                    "text": "a woman with a blue face is reading a book.",
+                    "confidence": null
+                },
+                {
+                    "start_time": 22025,
+                    "end_time": 22067,
+                    "text": "a man in a blue shirt is looking at a paper .",
+                    "confidence": null
+                }
+            ],
+            {
+                "0": [
+                    {
+                        "text": "a man is standing in front of a bunch of papers .",
+                        "box": [
+                            0.05,
+                            0.05,
+                            0.95,
+                            0.95
+                        ],
+                        "confidence": 1.0
+                    }
+                ],
+                "332": [
+                    {
+                        "text": "a woman is standing in front of a wall with papers on it.",
+                        "box": [
+                            0.05,
+                            0.05,
+                            0.95,
+                            0.95
+                        ],
+                        "confidence": 1.0
+                    }
+                ],
+                "624": [
+                    {
+                        "text": "a man and a woman are looking at each other.",
+                        "box": [
+                            0.05,
+                            0.05,
+                            0.95,
+                            0.95
+                        ],
+                        "confidence": 1.0
+                    }
+                ]
+            },
+            [
+                {
+                    "start_time": 0,
+                    "end_time": 42,
+                    "text": "a man is standing in front of a bunch of papers .",
+                    "confidence": null
+                },
+                {
+                    "start_time": 13847,
+                    "end_time": 13889,
+                    "text": "a woman is standing in front of a wall with papers on it.",
+                    "confidence": null
+                },
+                {
+                    "start_time": 26026,
+                    "end_time": 26068,
+                    "text": "a man and a woman are looking at each other.",
+                    "confidence": null
+                }
+            ],
+            {
+                "0": [
+                    {
+                        "text": "a man and a woman are looking at each other.",
+                        "box": [
+                            0.05,
+                            0.05,
+                            0.95,
+                            0.95
+                        ],
+                        "confidence": 1.0
+                    }
+                ]
+            },
+            []
+        ]
+    ]
+]
