@@ -203,7 +203,8 @@ class ElvClient():
     def upload_files(self,
                     write_token: str,
                     library_id: str,
-                    file_jobs: List[FileJob]) -> None:
+                    file_jobs: List[FileJob],
+                    finalize: bool=True) -> None:
         # strip leading slashes
         file_jobs = file_jobs[:]
         for job in file_jobs:
@@ -262,6 +263,12 @@ class ElvClient():
             logger.error(response.text)
             raise e
 
+        if finalize:
+            self.finalize_files(write_token, library_id)
+            
+    def finalize_files(self,
+                       write_token: str,
+                       library_id: str) -> None:
         # finalize upload, write token cannot be used to upload more files after this
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'files')
         response = requests.post(url, headers={"Authorization": f"Bearer {self.token}"})
