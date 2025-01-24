@@ -404,6 +404,6 @@ class ElvClient():
 
         asyncio.run(fetch_all(paths))
 
-    def set_commit_message(self, write_token: str, message: str, library_id: Optional[str]=None) -> None:
+    def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         commit_data = {"commit": {"message": message, "timestamp": datetime.now().isoformat(timespec='microseconds') + 'Z'}}
         self.merge_metadata(write_token, commit_data, library_id=library_id)
