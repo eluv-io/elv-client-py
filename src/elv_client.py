@@ -6,6 +6,8 @@ import requests
 from requests.exceptions import HTTPError
 from dataclasses import dataclass
 import os
+import aiohttp
+import asyncio
 
 from .utils import get, build_url, post, get_from_path
 
@@ -311,30 +313,6 @@ class ElvClient():
                 result.append(entry)
         return result
     
-    def download_directory(self,
-                        dest_path: str,
-                        fabric_path: Optional[str]="/",
-                        library_id: Optional[str]=None,
-                        object_id: Optional[str]=None,
-                        version_hash: Optional[str]=None,
-                        write_token: Optional[str]=None,
-    ) -> None:
-        if not fabric_path.endswith("/"):
-            fabric_path += "/"
-        if not os.path.exists(dest_path):
-            os.makedirs(dest_path)
-        entries = self.list_files(library_id, object_id, version_hash, write_token, fabric_path)
-        for entry in entries:
-            if entry.endswith("/"):
-                self.download_directory(fabric_path=f"{fabric_path}{entry}", 
-                                        dest_path=os.path.join(dest_path, entry[:-1]), 
-                                        library_id=library_id, 
-                                        object_id=object_id, 
-                                        version_hash=version_hash, 
-                                        write_token=write_token)
-            else:
-                self.download_file(f"{fabric_path}/{entry}", os.path.join(dest_path, entry), library_id, object_id, version_hash, write_token)
-    
     def download_file(self,
                         file_path: str,
                         dest_path: str,
@@ -348,6 +326,7 @@ class ElvClient():
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
         url = build_url(url, 'q', id, 'files', file_path)
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         headers = {"Authorization": f"Bearer {self.token}"}
         response = requests.get(url, headers=headers, stream=True)
         if response.status_code == 200:
@@ -356,3 +335,70 @@ class ElvClient():
                     file.write(chunk)
         else:
             response.raise_for_status()
+
+    async def download_file_async(self,
+                        file_path: str,
+                        dest_path: str,
+                        library_id: Optional[str]=None,
+                        object_id: Optional[str]=None,
+                        version_hash: Optional[str]=None,
+                        write_token: Optional[str]=None,
+    ) -> None:
+        url = self._get_host()
+        if library_id:
+            url = build_url(url, 'qlibs', library_id)
+        id = write_token or version_hash or object_id
+        url = build_url(url, 'q', id, 'files', file_path)
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        headers = {"Authorization": f"Bearer {self.token}"}
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    with open(dest_path, "wb") as file:
+                        async for chunk in response.content.iter_chunked(8192):
+                            file.write(chunk)
+                else:
+                    response.raise_for_status()
+
+    def download_directory(self,
+                        dest_path: str,
+                        fabric_path: Optional[str]="/",
+                        library_id: Optional[str]=None,
+                        object_id: Optional[str]=None,
+                        version_hash: Optional[str]=None,
+                        write_token: Optional[str]=None,
+    ) -> None:
+        if not fabric_path.startswith("/"):
+            fabric_path = f"/{fabric_path}"
+        if not fabric_path.endswith("/"):
+            fabric_path += "/"
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path)
+
+        def crawl_files(path: str) -> List[str]:
+            """
+            Recursively crawls fabric files rooted at path and returns a list of all files
+            """
+            entries = self.list_files(library_id, object_id, version_hash, write_token, path)
+            result = []
+            for entry in entries:
+                if entry.endswith("/"):
+                    result += crawl_files(f"{path}{entry}")
+                else:
+                    result.append(f"{path}{entry}")
+            return result
+
+        paths = crawl_files(fabric_path)
+
+        # Asynchronous function to handle multiple requests
+        async def fetch_all(fabric_file_path: List[str]):
+            tasks = []
+            for fpath in fabric_file_path:
+                tasks.append(self.download_file_async(fpath, os.path.join(dest_path, fpath.removeprefix(fabric_path)), \
+                                                      library_id=library_id, \
+                                                      object_id=object_id,
+                                                      version_hash=version_hash,
+                                                      write_token=write_token))
+            return await asyncio.gather(*tasks)
+
+        asyncio.run(fetch_all(paths))
