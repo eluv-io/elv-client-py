@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import os
 import aiohttp
 import asyncio
+from datetime import datetime
 
 from .utils import get, build_url, post, get_from_path
 
@@ -174,7 +175,7 @@ class ElvClient():
                     write_token: str,
                     metadata: Any,
                     library_id: str,
-                    metadata_subtree: Optional[str]=None) -> Any:
+                    metadata_subtree: Optional[str]=None) -> None:
         url = self._get_host()
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
         if metadata_subtree:
@@ -187,7 +188,7 @@ class ElvClient():
                        write_token: str,
                        metadata: Any,
                        library_id: str,
-                       metadata_subtree: Optional[str]=None) -> Any:
+                       metadata_subtree: Optional[str]=None) -> None:
         url = self._get_host()
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
         if metadata_subtree:
@@ -286,7 +287,7 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None,
-                    path: Optional[str]="/") -> Any:
+                    path: Optional[str]="/") -> List[str]:
         if path.startswith("/"):
             path = path[1:]
         if path.endswith("/"):
@@ -402,3 +403,7 @@ class ElvClient():
             return await asyncio.gather(*tasks)
 
         asyncio.run(fetch_all(paths))
+
+    def set_commit_message(self, write_token: str, message: str, library_id: Optional[str]=None) -> None:
+        commit_data = {"commit": {"message": message, "timestamp": datetime.now().isoformat(timespec='microseconds') + 'Z'}}
+        self.merge_metadata(write_token, commit_data, library_id=library_id)

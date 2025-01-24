@@ -2,6 +2,7 @@ import os
 import argparse
 from typing import Any, List, Callable
 import json
+from datetime import datetime
 
 from src.elv_client import *
 from quick_test_py import Tester
@@ -31,7 +32,18 @@ def test_merge_metadata(client: ElvClient) -> List[Callable]:
         r3 = client.content_object_metadata(write_token=qwt, metadata_subtree="test/foo/bar")
         return [r1, r2, r3]
     
-    return [t1]
+    def test_commit():
+        client.set_commit_message(write_token=qwt, library_id=config["libid"], message="test commit")
+        commit_message = client.content_object_metadata(write_token=qwt, metadata_subtree="commit/message")
+        assert commit_message == "test commit"
+        object_id = client.content_object(write_token=qwt)["id"]
+        old_timestamp = client.content_object_metadata(object_id=object_id, metadata_subtree="commit/timestamp")
+        commit_time = client.content_object_metadata(write_token=qwt, metadata_subtree="commit/timestamp")
+        # load strings as datetime and make sure new commit time is greater than old commit time
+        assert datetime.fromisoformat(commit_time.replace("Z", "+00:00")) > datetime.fromisoformat(old_timestamp.replace("Z", "+00:00"))
+        return ["Passed"]
+    
+    return [t1, test_commit]
     
 def test_set_metadata(client: ElvClient) -> List[Callable]:
     qwt = os.getenv(config['env_write_token'])
