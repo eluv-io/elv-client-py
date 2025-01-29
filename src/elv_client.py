@@ -11,7 +11,7 @@ import asyncio
 from datetime import datetime
 
 from .utils import get, build_url, post, get_from_path
-from config import config
+from .config import config
 
 class ElvClient():
     def __init__(self, fabric_uris: List[str], search_uris: List[str]=[], static_token: str=""):
