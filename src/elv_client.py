@@ -236,15 +236,15 @@ class ElvClient():
         assert len(job_data["jobs"]) == 1, "Expected only one file job"
 
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'file_jobs', job_id, 'uploads', file_job_id)
-        response = requests.get(url, headers={"Authorization": f"Bearer {self.token}"})
-        try:
+        next_start = 0
+        ordered_paths = []
+        # iterate through the pages of file jobs
+        while next_start != -1:
+            response = requests.get(url, params={"start": next_start}, headers={"Authorization": f"Bearer {self.token}"})
             response.raise_for_status()
-        except HTTPError as e:
-            logger.error(f"Failed to get upload URL: {e}")
-            logger.error(response.text)
-            raise e
-        file_jobs = response.json()["files"]
-        ordered_paths = [file["path"] for file in file_jobs]
+            file_info = response.json()
+            next_start = file_info["next"]
+            ordered_paths.extend(file["path"] for file in file_info["files"])
 
         # load files into single buffer
         data_buffer = bytearray()
