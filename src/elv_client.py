@@ -11,12 +11,14 @@ import asyncio
 from datetime import datetime
 
 from .utils import get, build_url, post, get_from_path
+from .config import config
 
 class ElvClient():
     def __init__(self, fabric_uris: List[str], search_uris: List[str]=[], static_token: str=""):
         self.fabric_uris = fabric_uris
         self.search_uris = search_uris
         self.token = static_token
+        self.semaphore = asyncio.Semaphore(config["client"]["max_concurrent_requests"])
 
     @staticmethod
     def from_configuration_url(config_url: str, static_token: str=""):
@@ -236,15 +238,15 @@ class ElvClient():
         assert len(job_data["jobs"]) == 1, "Expected only one file job"
 
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'file_jobs', job_id, 'uploads', file_job_id)
-        response = requests.get(url, headers={"Authorization": f"Bearer {self.token}"})
-        try:
+        next_start = 0
+        ordered_paths = []
+        # iterate through the pages of file jobs
+        while next_start != -1:
+            response = requests.get(url, params={"start": next_start}, headers={"Authorization": f"Bearer {self.token}"})
             response.raise_for_status()
-        except HTTPError as e:
-            logger.error(f"Failed to get upload URL: {e}")
-            logger.error(response.text)
-            raise e
-        file_jobs = response.json()["files"]
-        ordered_paths = [file["path"] for file in file_jobs]
+            file_info = response.json()
+            next_start = file_info["next"]
+            ordered_paths.extend(file["path"] for file in file_info["files"])
 
         # load files into single buffer
         data_buffer = bytearray()
@@ -353,13 +355,14 @@ class ElvClient():
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    with open(dest_path, "wb") as file:
-                        async for chunk in response.content.iter_chunked(8192):
-                            file.write(chunk)
-                else:
-                    response.raise_for_status()
+            async with self.semaphore:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        with open(dest_path, "wb") as file:
+                            async for chunk in response.content.iter_chunked(8192):
+                                file.write(chunk)
+                    else:
+                        response.raise_for_status()
 
     def download_directory(self,
                         dest_path: str,
