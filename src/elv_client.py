@@ -11,12 +11,14 @@ import asyncio
 from datetime import datetime
 
 from .utils import get, build_url, post, get_from_path
+from config import config
 
 class ElvClient():
     def __init__(self, fabric_uris: List[str], search_uris: List[str]=[], static_token: str=""):
         self.fabric_uris = fabric_uris
         self.search_uris = search_uris
         self.token = static_token
+        self.semaphore = asyncio.Semaphore(config["client"]["max_concurrent_requests"])
 
     @staticmethod
     def from_configuration_url(config_url: str, static_token: str=""):
@@ -353,13 +355,14 @@ class ElvClient():
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    with open(dest_path, "wb") as file:
-                        async for chunk in response.content.iter_chunked(8192):
-                            file.write(chunk)
-                else:
-                    response.raise_for_status()
+            async with self.semaphore:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        with open(dest_path, "wb") as file:
+                            async for chunk in response.content.iter_chunked(8192):
+                                file.write(chunk)
+                    else:
+                        response.raise_for_status()
 
     def download_directory(self,
                         dest_path: str,
