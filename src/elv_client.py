@@ -1,6 +1,6 @@
 
 from typing import Any, Dict
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from loguru import logger
 import requests
 from requests.exceptions import HTTPError
@@ -406,6 +406,31 @@ class ElvClient():
             return await asyncio.gather(*tasks)
 
         asyncio.run(fetch_all(paths))
+        
+    def download_files(
+                    self,
+                    file_jobs: List[Tuple[str, str]],
+                    dest_path: str,
+                    library_id: Optional[str]=None,
+                    object_id: Optional[str]=None,
+                    version_hash: Optional[str]=None,
+                    write_token: Optional[str]=None,
+    ) -> None:
+        if not os.path.exists(dest_path):
+            os.makedirs(dest_path)
+        
+        # Asynchronous function to handle multiple requests
+        async def fetch_all(fabric_file_path: List[str]):
+            tasks = []
+            for fpath, out_path in fabric_file_path:
+                tasks.append(self.download_file_async(fpath, os.path.join(dest_path, out_path), \
+                                                      library_id=library_id, \
+                                                      object_id=object_id,
+                                                      version_hash=version_hash,
+                                                      write_token=write_token))
+            return await asyncio.gather(*tasks)
+
+        asyncio.run(fetch_all(file_jobs))
 
     def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         commit_data = {"commit": {"message": message, "timestamp": datetime.now().isoformat(timespec='microseconds') + 'Z'}}
