@@ -72,6 +72,19 @@ def test_download_file(client: ElvClient) -> List[Callable]:
             return json.load(f)
     return [t1]
 
+def test_download_files(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['mezz']['12AngryMen']
+    libid = config['objects']['mezz']['library']
+    filedir = os.path.dirname(os.path.abspath(__file__))
+    save_path = os.path.join(filedir, 'downloaded.json')
+    def t1():
+        if os.path.exists(save_path):
+            os.remove(save_path)
+        client.download_files(object_id=qid, library_id=libid, file_jobs=[('video_tags/video-tags-tracks-0000.json', 'downloaded.json')], dest_path=filedir)
+        with open(os.path.join(filedir, 'downloaded.json'), 'r') as f:
+            return json.load(f)
+    return [t1]
+
 def test_download_directory(client: ElvClient) -> List[Callable]:
     qid = config['objects']['mezz']['12AngryMen']
     libid = config['objects']['mezz']['library']
@@ -101,6 +114,7 @@ def main():
     tester.register('search_test', test_cases=test_search(client))
     tester.register('list_files_test', test_cases=test_list_files(client))
     tester.register('download_file_test', test_cases=test_download_file(client))
+    tester.register('download_files_test', test_cases=test_download_files(client))
     tester.register('test_download_directory', test_cases=test_download_directory(client))
     if args.record:
         tester.record(args.tests)
