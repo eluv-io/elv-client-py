@@ -68,7 +68,7 @@ class ElvClient():
             raise Exception("Object ID, Version Hash, or Write Token must be specified")
         if library_id:
             url = build_url(url, 'qlibs', library_id)
-        url = build_url(url, 'q', id, 'meta', metadata_subtree)
+        url = build_url(url, 'q', id, 'meta', quote(metadata_subtree))
         headers = {"Authorization": f"Bearer {self.token}"}
 
         return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links}, headers)
@@ -195,7 +195,7 @@ class ElvClient():
         url = self._get_host()
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
         if metadata_subtree:
-            url = build_url(url, metadata_subtree)
+            url = build_url(url, quote(metadata_subtree))
         headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
         response = requests.put(url, headers=headers, json=metadata)
         response.raise_for_status()
@@ -352,7 +352,7 @@ class ElvClient():
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
-        url = build_url(url, 'q', id, 'files', file_path)
+        url = build_url(url, 'q', id, 'files', quote(file_path))
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession(headers=headers) as session:
