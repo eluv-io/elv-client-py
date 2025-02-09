@@ -9,6 +9,7 @@ import os
 import aiohttp
 import asyncio
 from datetime import datetime
+from urllib.parse import quote
 
 from .utils import get, build_url, post, get_from_path
 from .config import config
@@ -328,7 +329,7 @@ class ElvClient():
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
-        url = build_url(url, 'q', id, 'files', file_path)
+        url = build_url(url, 'q', id, 'files', quote(file_path))
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         headers = {"Authorization": f"Bearer {self.token}"}
         response = requests.get(url, headers=headers, stream=True)
