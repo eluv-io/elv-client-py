@@ -395,18 +395,7 @@ class ElvClient():
 
         paths = crawl_files(fabric_path)
 
-        # Asynchronous function to handle multiple requests
-        async def fetch_all(fabric_file_path: List[str]):
-            tasks = []
-            for fpath in fabric_file_path:
-                tasks.append(self.download_file_async(fpath, os.path.join(dest_path, fpath.removeprefix(fabric_path)), \
-                                                      library_id=library_id, \
-                                                      object_id=object_id,
-                                                      version_hash=version_hash,
-                                                      write_token=write_token))
-            return await asyncio.gather(*tasks)
-
-        asyncio.run(fetch_all(paths))
+        return self.download_files([(path, path.removeprefix(fabric_path)) for path in paths], dest_path, library_id, object_id, version_hash, write_token)
         
     def download_files(
                     self,
