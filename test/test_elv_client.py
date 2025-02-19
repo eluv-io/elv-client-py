@@ -104,6 +104,20 @@ def test_download_directory(client: ElvClient) -> List[Callable]:
             return json.load(f)
     return [t1, t2]
 
+def test_download_files(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['mezz']['12AngryMen']
+    libid = config['objects']['mezz']['library']
+    filedir = os.path.dirname(os.path.abspath(__file__))
+    save_path = os.path.join(filedir, 'downloaded')
+    shutil.rmtree(save_path, ignore_errors=True)
+    def t1():
+        to_download = [('video_tags/video-tags-tracks-0000.json', 'tracks.json'), ('video_tags/video-tags-tracks-0000.json', 'overlay.json'), ('video_tags/tracks/asr.json', 'asr/asr.json'), ('video_tags/tracks/oc.json', 'ocr/ocr.json')]
+        res = client.download_files(object_id=qid, library_id=libid, file_jobs=to_download, dest_path=save_path)
+        assert all(res is None for res in res[:3])
+        assert res[-1] is not None
+        return "Passed"
+    return [t1]
+
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
     tester = Tester(os.path.join(cwd, 'test_results'))

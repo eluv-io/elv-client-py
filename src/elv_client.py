@@ -9,6 +9,7 @@ import os
 import aiohttp
 import asyncio
 from datetime import datetime
+from urllib.parse import quote
 
 from .utils import get, build_url, post, get_from_path
 from .config import config
@@ -67,7 +68,7 @@ class ElvClient():
             raise Exception("Object ID, Version Hash, or Write Token must be specified")
         if library_id:
             url = build_url(url, 'qlibs', library_id)
-        url = build_url(url, 'q', id, 'meta', metadata_subtree)
+        url = build_url(url, 'q', id, 'meta', quote(metadata_subtree))
         headers = {"Authorization": f"Bearer {self.token}"}
 
         return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links}, headers)
@@ -194,7 +195,7 @@ class ElvClient():
         url = self._get_host()
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
         if metadata_subtree:
-            url = build_url(url, metadata_subtree)
+            url = build_url(url, quote(metadata_subtree))
         headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
         response = requests.put(url, headers=headers, json=metadata)
         response.raise_for_status()
@@ -328,7 +329,7 @@ class ElvClient():
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
-        url = build_url(url, 'q', id, 'files', file_path)
+        url = build_url(url, 'q', id, 'files', quote(file_path))
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         headers = {"Authorization": f"Bearer {self.token}"}
         response = requests.get(url, headers=headers, stream=True)
@@ -346,24 +347,30 @@ class ElvClient():
                         object_id: Optional[str]=None,
                         version_hash: Optional[str]=None,
                         write_token: Optional[str]=None,
-    ) -> None:
+    ) -> Optional[Exception]:
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
-        url = build_url(url, 'q', id, 'files', file_path)
-        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        url = build_url(url, 'q', id, 'files', quote(file_path))
+        try:
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        except PermissionError as e:
+            return PermissionError(f"Failed to create output directory {os.path.dirname(dest_path)}: {e}")
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession(headers=headers) as session:
             async with self.semaphore:
                 async with session.get(url) as response:
-                    if response.status == 200:
+                    if response.status != 200:
+                        return HTTPError(f"Failed to download file {file_path}: {response.status}, {response.text}")
+                    try:    
                         with open(dest_path, "wb") as file:
                             async for chunk in response.content.iter_chunked(8192):
                                 file.write(chunk)
-                    else:
-                        response.raise_for_status()
-
+                    except Exception as e:
+                        return IOError(f"Failed to write file {dest_path}: {e}")
+        return None
+                        
     def download_directory(self,
                         dest_path: str,
                         fabric_path: Optional[str]="/",
@@ -394,18 +401,7 @@ class ElvClient():
 
         paths = crawl_files(fabric_path)
 
-        # Asynchronous function to handle multiple requests
-        async def fetch_all(fabric_file_path: List[str]):
-            tasks = []
-            for fpath in fabric_file_path:
-                tasks.append(self.download_file_async(fpath, os.path.join(dest_path, fpath.removeprefix(fabric_path)), \
-                                                      library_id=library_id, \
-                                                      object_id=object_id,
-                                                      version_hash=version_hash,
-                                                      write_token=write_token))
-            return await asyncio.gather(*tasks)
-
-        asyncio.run(fetch_all(paths))
+        return self.download_files([(path, path.removeprefix(fabric_path)) for path in paths], dest_path, library_id, object_id, version_hash, write_token)
         
     def download_files(
                     self,
@@ -415,7 +411,20 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None,
-    ) -> None:
+    ) -> List[Optional[Exception]]:
+        """Downloads a list of files to a destination directory.
+
+        Args:
+            file_jobs: List of tuples where each tuple is a pair of (fabric_path, out_path)
+            dest_path: Destination directory to save the files
+            library_id: Library ID
+            object_id: Object ID
+            version_hash: Version Hash
+            write_token: Write Token
+
+        Returns:
+            List of exceptions for each file download, or None if successful
+        """
         if not os.path.exists(dest_path):
             os.makedirs(dest_path)
         
@@ -428,9 +437,9 @@ class ElvClient():
                                                       object_id=object_id,
                                                       version_hash=version_hash,
                                                       write_token=write_token))
-            return await asyncio.gather(*tasks)
+            return await asyncio.gather(*tasks, return_exceptions=True)
 
-        asyncio.run(fetch_all(file_jobs))
+        return asyncio.run(fetch_all(file_jobs))
 
     def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         commit_data = {"commit": {"message": message, "timestamp": datetime.now().isoformat(timespec='microseconds') + 'Z'}}
