@@ -347,24 +347,30 @@ class ElvClient():
                         object_id: Optional[str]=None,
                         version_hash: Optional[str]=None,
                         write_token: Optional[str]=None,
-    ) -> None:
+    ) -> Optional[Exception]:
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
         url = build_url(url, 'q', id, 'files', quote(file_path))
-        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        try:
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        except PermissionError as e:
+            return PermissionError(f"Failed to create output directory {os.path.dirname(dest_path)}: {e}")
         headers = {"Authorization": f"Bearer {self.token}"}
         async with aiohttp.ClientSession(headers=headers) as session:
             async with self.semaphore:
                 async with session.get(url) as response:
-                    if response.status == 200:
+                    if response.status != 200:
+                        return HTTPError(f"Failed to download file {file_path}: {response.status}, {response.text}")
+                    try:    
                         with open(dest_path, "wb") as file:
                             async for chunk in response.content.iter_chunked(8192):
                                 file.write(chunk)
-                    else:
-                        response.raise_for_status()
-
+                    except Exception as e:
+                        return IOError(f"Failed to write file {dest_path}: {e}")
+        return None
+                        
     def download_directory(self,
                         dest_path: str,
                         fabric_path: Optional[str]="/",
@@ -405,7 +411,20 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None,
-    ) -> None:
+    ) -> List[Optional[Exception]]:
+        """Downloads a list of files to a destination directory.
+
+        Args:
+            file_jobs: List of tuples where each tuple is a pair of (fabric_path, out_path)
+            dest_path: Destination directory to save the files
+            library_id: Library ID
+            object_id: Object ID
+            version_hash: Version Hash
+            write_token: Write Token
+
+        Returns:
+            List of exceptions for each file download, or None if successful
+        """
         if not os.path.exists(dest_path):
             os.makedirs(dest_path)
         
@@ -418,9 +437,9 @@ class ElvClient():
                                                       object_id=object_id,
                                                       version_hash=version_hash,
                                                       write_token=write_token))
-            return await asyncio.gather(*tasks)
+            return await asyncio.gather(*tasks, return_exceptions=True)
 
-        asyncio.run(fetch_all(file_jobs))
+        return asyncio.run(fetch_all(file_jobs))
 
     def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         commit_data = {"commit": {"message": message, "timestamp": datetime.now().isoformat(timespec='microseconds') + 'Z'}}
