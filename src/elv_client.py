@@ -10,6 +10,7 @@ import aiohttp
 import asyncio
 from datetime import datetime
 from urllib.parse import quote
+import threading
 
 from .utils import get, build_url, post, get_from_path
 from .config import config
@@ -20,6 +21,8 @@ class ElvClient():
         self.search_uris = search_uris
         self.token = static_token
         self.semaphore = asyncio.Semaphore(config["client"]["max_concurrent_requests"])
+        self.loop = asyncio.new_event_loop()
+        self.thread_id = threading.get_ident()
 
     @staticmethod
     def from_configuration_url(config_url: str, static_token: str=""):
@@ -425,6 +428,8 @@ class ElvClient():
         Returns:
             List of exceptions for each file download, or None if successful
         """
+        self._check_thread()
+
         if not os.path.exists(dest_path):
             os.makedirs(dest_path)
         
@@ -439,7 +444,12 @@ class ElvClient():
                                                       write_token=write_token))
             return await asyncio.gather(*tasks, return_exceptions=True)
 
-        return asyncio.run(fetch_all(file_jobs))
+        return self.loop.run_until_complete(fetch_all(file_jobs))
+    
+    def _check_thread(self):
+        """Ensure the client is only accessed from the same thread."""
+        if threading.get_ident() != self.thread_id:
+            raise RuntimeError("ElvClient currently only supports single-threaded access for async operations.")
 
     def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         commit_data = {"commit": {"message": message, "timestamp": datetime.now().isoformat(timespec='microseconds') + 'Z'}}
