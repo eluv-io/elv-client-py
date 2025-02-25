@@ -72,9 +72,8 @@ class ElvClient():
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         url = build_url(url, 'q', id, 'meta', quote(metadata_subtree))
-        headers = {"Authorization": f"Bearer {self.token}"}
 
-        return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links}, headers)
+        return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links, "authorization": self.token})
     
     def call_bitcode_method(self, 
                             method: str, 
@@ -97,9 +96,9 @@ class ElvClient():
         if host is None:
             host = self._get_host()
         url = build_url(host, path)
-        headers = {"Authorization": f"Bearer {self.token}"}
+        params["authorization"] = self.token
 
-        return post(url, params, headers)
+        return post(url, params=params)
     
     # Search on a given index object
     def search(self, 
@@ -136,8 +135,7 @@ class ElvClient():
         if not id:
             raise Exception("Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', id)
-        headers = {"Authorization": f"Bearer {self.token}"}
-        return get(url, headers=headers)
+        return get(url, params={"authorization": self.token})
     
     def content_object_versions(self,
                        object_id: str,
@@ -148,8 +146,7 @@ class ElvClient():
         if not library_id:
             raise Exception("Library ID must be specified for listing content versions")
         url = build_url(url, 'qlibs', library_id, 'qid', object_id)
-        headers = {"Authorization": f"Bearer {self.token}"}
-        return get(url, headers=headers)
+        return get(url, params={"authorization": self.token})
     
     def download_part(self,
                     part_hash: str,
@@ -167,8 +164,8 @@ class ElvClient():
         if not id:
             raise Exception("Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', id, 'rep', 'parts_download')
-        params = {"part_hash": part_hash}
-        response = requests.get(url, params=params, headers={"Authorization": f"Bearer {self.token}"})
+        params = {"part_hash": part_hash, "authorization": self.token}
+        response = requests.get(url, params=params)
         if response.status_code == 200:
             with open(save_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -186,8 +183,8 @@ class ElvClient():
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
         if metadata_subtree:
             url = build_url(url, metadata_subtree)
-        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
-        response = requests.post(url, headers=headers, json=metadata)
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        response = requests.post(url, params={"authorization": self.token}, headers=headers, json=metadata)
         response.raise_for_status()
     
     def replace_metadata(self,
@@ -199,8 +196,8 @@ class ElvClient():
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
         if metadata_subtree:
             url = build_url(url, quote(metadata_subtree))
-        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
-        response = requests.put(url, headers=headers, json=metadata)
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        response = requests.put(url, params={"authorization": self.token}, headers=headers, json=metadata)
         response.raise_for_status()
 
     @dataclass
@@ -224,11 +221,10 @@ class ElvClient():
 
         # Create upload job
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'file_jobs')
-        headers = {"Authorization": f"Bearer {self.token}",
-                   "Accept": "application/json",
+        headers = {"Accept": "application/json",
                    "Content-Type": "application/json"}
         ops = [{"type": "file", "path": job.out_path, "mime_type": job.mime_type, "size": os.path.getsize(job.local_path)} for job in file_jobs]
-        response = requests.post(url, headers=headers, json={"ops": ops})
+        response = requests.post(url, params={"authorization": self.token}, headers=headers, json={"ops": ops})
         try:
             response.raise_for_status()
         except HTTPError as e:
@@ -246,7 +242,7 @@ class ElvClient():
         ordered_paths = []
         # iterate through the pages of file jobs
         while next_start != -1:
-            response = requests.get(url, params={"start": next_start}, headers={"Authorization": f"Bearer {self.token}"})
+            response = requests.get(url, params={"start": next_start, "authorization": self.token})
             response.raise_for_status()
             file_info = response.json()
             next_start = file_info["next"]
@@ -261,10 +257,9 @@ class ElvClient():
 
         # upload buffer
         upload_url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'file_jobs', job_id, file_job_id)
-        headers = {"Authorization": f"Bearer {self.token}",
-                   "Accept": "application/json",
+        headers = {"Accept": "application/json",
                    "Content-Type": "application/octet-stream"}
-        response = requests.post(upload_url, headers=headers, data=data_buffer)
+        response = requests.post(upload_url, params={"authorization": self.token}, headers=headers, data=data_buffer)
         try:
             response.raise_for_status()
         except HTTPError as e:
@@ -280,7 +275,7 @@ class ElvClient():
                        library_id: str) -> None:
         # finalize upload, write token cannot be used to upload more files after this
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'files')
-        response = requests.post(url, headers={"Authorization": f"Bearer {self.token}"})
+        response = requests.post(url, params={"authorization": self.token})
         try:
             response.raise_for_status()
         except HTTPError as e:
@@ -307,8 +302,7 @@ class ElvClient():
         url = build_url(url, 'q', id, 'files_list')
         if path:
             url = build_url(url, path)
-        headers = {"Authorization": f"Bearer {self.token}"}
-        response = get(url, headers=headers)
+        response = get(url, params={"authorization": self.token})
         response = get_from_path(response, path)
         result = []
         for entry, info in response.items():
@@ -334,8 +328,7 @@ class ElvClient():
         id = write_token or version_hash or object_id
         url = build_url(url, 'q', id, 'files', quote(file_path))
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        headers = {"Authorization": f"Bearer {self.token}"}
-        response = requests.get(url, headers=headers, stream=True)
+        response = requests.get(url, params={"authorization": self.token}, stream=True)
         if response.status_code == 200:
             with open(dest_path, "wb") as file:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -360,10 +353,9 @@ class ElvClient():
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         except PermissionError as e:
             return PermissionError(f"Failed to create output directory {os.path.dirname(dest_path)}: {e}")
-        headers = {"Authorization": f"Bearer {self.token}"}
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with aiohttp.ClientSession() as session:
             async with self.semaphore:
-                async with session.get(url) as response:
+                async with session.get(url, params={"authorization": self.token}) as response:
                     if response.status != 200:
                         return HTTPError(f"Failed to download file {file_path}: {response.status}, {response.text}")
                     try:    
