@@ -29,12 +29,12 @@ class ElvClient():
         config = get(config_url)
         services = config.get("network", {}).get("services", {})
         if len(services) == 0:
-            raise Exception("No services available in the configuration")
+            raise ValueError("No services available in the configuration")
         if "fabric_api" not in services:
-            raise Exception("No Fabric URIs available in the configuration")
+            raise ValueError("No Fabric URIs available in the configuration")
         fabric_uris = services["fabric_api"]
         if not fabric_uris:
-            raise Exception("No Fabric URIs available in the configuration")
+            raise ValueError("No Fabric URIs available in the configuration")
         search_uris = services.get("search_v2", [])
         if not search_uris:
             logger.warning("No Search URIs available in the configuration")
@@ -45,12 +45,12 @@ class ElvClient():
 
     def _get_host(self) -> str:
         if len(self.fabric_uris) == 0:
-            raise Exception("No Fabric URIs available")
+            raise ValueError("No Fabric URIs available")
         return self.fabric_uris[0]
     
     def _get_search_host(self) -> str:
         if len(self.search_uris) == 0:
-            raise Exception("No Search URIs available")
+            raise ValueError("No Search URIs available")
         return self.search_uris[0]
     
     def content_object_metadata(self, 
@@ -64,11 +64,11 @@ class ElvClient():
                                 resolve_links: bool=False
                                 ) -> Any:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         url = self._get_host()
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         url = build_url(url, 'q', id, 'meta', quote(metadata_subtree))
@@ -85,10 +85,10 @@ class ElvClient():
                             representation: bool=False,
                             host: Optional[str]=None) -> Any:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         call_type = 'rep' if representation else 'call'
         if not library_id:
             library_id = self.content_object_library_id(object_id, version_hash)
@@ -110,7 +110,7 @@ class ElvClient():
                ) -> Any:
         assert query is not None, "Query must be specified"
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         host = self._get_search_host()
         return self.call_bitcode_method("search", library_id=library_id, object_id=object_id, version_hash=version_hash, write_token=write_token, params=query, host=host, representation=True)
     
@@ -127,13 +127,13 @@ class ElvClient():
                         write_token: Optional[str]=None,
                         library_id: Optional[str]=None) -> Dict[str, str]:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', id)
         return get(url, params={"authorization": self.token})
     
@@ -141,10 +141,10 @@ class ElvClient():
                        object_id: str,
                        library_id: str) -> Dict[str, Any]:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         url = self._get_host()
         if not library_id:
-            raise Exception("Library ID must be specified for listing content versions")
+            raise ValueError("Library ID must be specified for listing content versions")
         url = build_url(url, 'qlibs', library_id, 'qid', object_id)
         return get(url, params={"authorization": self.token})
     
@@ -155,14 +155,26 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None) -> None:
+        if self._is_encrypted(part_hash):
+            self._download_encrypted_part(part_hash, save_path, library_id, object_id, version_hash, write_token)
+        else:
+            self._download_unencrypted_part(part_hash, save_path, library_id, object_id, version_hash, write_token)
+
+    def _download_encrypted_part(self,
+                    part_hash: str,
+                    save_path: str, 
+                    library_id: Optional[str]=None,
+                    object_id: Optional[str]=None,
+                    version_hash: Optional[str]=None,
+                    write_token: Optional[str]=None) -> None:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', id, 'rep', 'parts_download')
         params = {"part_hash": part_hash, "authorization": self.token}
         response = requests.get(url, params=params)
@@ -173,6 +185,35 @@ class ElvClient():
                         file.write(chunk)
         else:
             response.raise_for_status()
+
+    def _download_unencrypted_part(self,
+                    part_hash: str,
+                    save_path: str, 
+                    library_id: Optional[str]=None,
+                    object_id: Optional[str]=None,
+                    version_hash: Optional[str]=None,
+                    write_token: Optional[str]=None) -> None:
+        if not self.token:
+            raise ValueError("No token available")
+        url = self._get_host()
+        if library_id:
+            url = build_url(url, 'qlibs', library_id)
+        id = write_token or version_hash or object_id
+        if not id:
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
+        url = build_url(url, 'q', id, 'data', part_hash)
+        params = {"authorization": self.token}
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            with open(save_path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:  
+                        file.write(chunk)
+        else:
+            response.raise_for_status()
+
+    def _is_encrypted(self, part_hash: str) -> bool:
+        return part_hash.startswith("hqpe__")
 
     def merge_metadata(self,
                     write_token: str,
@@ -295,7 +336,7 @@ class ElvClient():
             path = path[:-1]
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
@@ -343,7 +384,7 @@ class ElvClient():
                         object_id: Optional[str]=None,
                         version_hash: Optional[str]=None,
                         write_token: Optional[str]=None,
-    ) -> Optional[Exception]:
+    ) -> Optional[ValueError]:
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
@@ -362,7 +403,7 @@ class ElvClient():
                         with open(dest_path, "wb") as file:
                             async for chunk in response.content.iter_chunked(8192):
                                 file.write(chunk)
-                    except Exception as e:
+                    except ValueError as e:
                         return IOError(f"Failed to write file {dest_path}: {e}")
         return None
                         
@@ -406,7 +447,7 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None,
-    ) -> List[Optional[Exception]]:
+    ) -> List[Optional[ValueError]]:
         """Downloads a list of files to a destination directory.
 
         Args:
@@ -418,7 +459,7 @@ class ElvClient():
             write_token: Write Token
 
         Returns:
-            List of exceptions for each file download, or None if successful
+            List of ValueErrors for each file download, or None if successful
         """
         self._check_thread()
 
