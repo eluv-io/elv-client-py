@@ -213,7 +213,7 @@ class ElvClient():
             response.raise_for_status()
 
     def _is_encrypted(self, part_hash: str) -> bool:
-        return part_hash.startswith("hqpe__")
+        return part_hash.startswith("hqpe")
 
     def merge_metadata(self,
                     write_token: str,
