@@ -10,6 +10,7 @@ import aiohttp
 import asyncio
 from datetime import datetime
 from urllib.parse import quote
+import threading
 
 from .utils import get, build_url, post, get_from_path
 from .config import config
@@ -20,18 +21,20 @@ class ElvClient():
         self.search_uris = search_uris
         self.token = static_token
         self.semaphore = asyncio.Semaphore(config["client"]["max_concurrent_requests"])
+        self.loop = asyncio.new_event_loop()
+        self.thread_id = threading.get_ident()
 
     @staticmethod
     def from_configuration_url(config_url: str, static_token: str=""):
         config = get(config_url)
         services = config.get("network", {}).get("services", {})
         if len(services) == 0:
-            raise Exception("No services available in the configuration")
+            raise ValueError("No services available in the configuration")
         if "fabric_api" not in services:
-            raise Exception("No Fabric URIs available in the configuration")
+            raise ValueError("No Fabric URIs available in the configuration")
         fabric_uris = services["fabric_api"]
         if not fabric_uris:
-            raise Exception("No Fabric URIs available in the configuration")
+            raise ValueError("No Fabric URIs available in the configuration")
         search_uris = services.get("search_v2", [])
         if not search_uris:
             logger.warning("No Search URIs available in the configuration")
@@ -42,12 +45,12 @@ class ElvClient():
 
     def _get_host(self) -> str:
         if len(self.fabric_uris) == 0:
-            raise Exception("No Fabric URIs available")
+            raise ValueError("No Fabric URIs available")
         return self.fabric_uris[0]
     
     def _get_search_host(self) -> str:
         if len(self.search_uris) == 0:
-            raise Exception("No Search URIs available")
+            raise ValueError("No Search URIs available")
         return self.search_uris[0]
     
     def content_object_metadata(self, 
@@ -61,17 +64,16 @@ class ElvClient():
                                 resolve_links: bool=False
                                 ) -> Any:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         url = self._get_host()
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         url = build_url(url, 'q', id, 'meta', quote(metadata_subtree))
-        headers = {"Authorization": f"Bearer {self.token}"}
 
-        return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links}, headers)
+        return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links, "authorization": self.token})
     
     def call_bitcode_method(self, 
                             method: str, 
@@ -83,10 +85,10 @@ class ElvClient():
                             representation: bool=False,
                             host: Optional[str]=None) -> Any:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         call_type = 'rep' if representation else 'call'
         if not library_id:
             library_id = self.content_object_library_id(object_id, version_hash)
@@ -94,9 +96,9 @@ class ElvClient():
         if host is None:
             host = self._get_host()
         url = build_url(host, path)
-        headers = {"Authorization": f"Bearer {self.token}"}
+        params["authorization"] = self.token
 
-        return post(url, params, headers)
+        return post(url, params=params)
     
     # Search on a given index object
     def search(self, 
@@ -108,7 +110,7 @@ class ElvClient():
                ) -> Any:
         assert query is not None, "Query must be specified"
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         host = self._get_search_host()
         return self.call_bitcode_method("search", library_id=library_id, object_id=object_id, version_hash=version_hash, write_token=write_token, params=query, host=host, representation=True)
     
@@ -125,28 +127,26 @@ class ElvClient():
                         write_token: Optional[str]=None,
                         library_id: Optional[str]=None) -> Dict[str, str]:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', id)
-        headers = {"Authorization": f"Bearer {self.token}"}
-        return get(url, headers=headers)
+        return get(url, params={"authorization": self.token})
     
     def content_object_versions(self,
                        object_id: str,
                        library_id: str) -> Dict[str, Any]:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         url = self._get_host()
         if not library_id:
-            raise Exception("Library ID must be specified for listing content versions")
+            raise ValueError("Library ID must be specified for listing content versions")
         url = build_url(url, 'qlibs', library_id, 'qid', object_id)
-        headers = {"Authorization": f"Bearer {self.token}"}
-        return get(url, headers=headers)
+        return get(url, params={"authorization": self.token})
     
     def download_part(self,
                     part_hash: str,
@@ -155,17 +155,29 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None) -> None:
+        if self._is_encrypted(part_hash):
+            self._download_encrypted_part(part_hash, save_path, library_id, object_id, version_hash, write_token)
+        else:
+            self._download_unencrypted_part(part_hash, save_path, library_id, object_id, version_hash, write_token)
+
+    def _download_encrypted_part(self,
+                    part_hash: str,
+                    save_path: str, 
+                    library_id: Optional[str]=None,
+                    object_id: Optional[str]=None,
+                    version_hash: Optional[str]=None,
+                    write_token: Optional[str]=None) -> None:
         if not self.token:
-            raise Exception("No token available")
+            raise ValueError("No token available")
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', id, 'rep', 'parts_download')
-        params = {"part_hash": part_hash}
-        response = requests.get(url, params=params, headers={"Authorization": f"Bearer {self.token}"})
+        params = {"part_hash": part_hash, "authorization": self.token}
+        response = requests.get(url, params=params)
         if response.status_code == 200:
             with open(save_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -173,6 +185,35 @@ class ElvClient():
                         file.write(chunk)
         else:
             response.raise_for_status()
+
+    def _download_unencrypted_part(self,
+                    part_hash: str,
+                    save_path: str, 
+                    library_id: Optional[str]=None,
+                    object_id: Optional[str]=None,
+                    version_hash: Optional[str]=None,
+                    write_token: Optional[str]=None) -> None:
+        if not self.token:
+            raise ValueError("No token available")
+        url = self._get_host()
+        if library_id:
+            url = build_url(url, 'qlibs', library_id)
+        id = write_token or version_hash or object_id
+        if not id:
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
+        url = build_url(url, 'q', id, 'data', part_hash)
+        params = {"authorization": self.token}
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            with open(save_path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:  
+                        file.write(chunk)
+        else:
+            response.raise_for_status()
+
+    def _is_encrypted(self, part_hash: str) -> bool:
+        return part_hash.startswith("hqpe")
 
     def merge_metadata(self,
                     write_token: str,
@@ -183,8 +224,8 @@ class ElvClient():
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
         if metadata_subtree:
             url = build_url(url, metadata_subtree)
-        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
-        response = requests.post(url, headers=headers, json=metadata)
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        response = requests.post(url, params={"authorization": self.token}, headers=headers, json=metadata)
         response.raise_for_status()
     
     def replace_metadata(self,
@@ -196,8 +237,8 @@ class ElvClient():
         url = build_url(url, 'qlibs', library_id, 'q', write_token, 'meta')
         if metadata_subtree:
             url = build_url(url, quote(metadata_subtree))
-        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": "application/json"}
-        response = requests.put(url, headers=headers, json=metadata)
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        response = requests.put(url, params={"authorization": self.token}, headers=headers, json=metadata)
         response.raise_for_status()
 
     @dataclass
@@ -221,11 +262,10 @@ class ElvClient():
 
         # Create upload job
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'file_jobs')
-        headers = {"Authorization": f"Bearer {self.token}",
-                   "Accept": "application/json",
+        headers = {"Accept": "application/json",
                    "Content-Type": "application/json"}
         ops = [{"type": "file", "path": job.out_path, "mime_type": job.mime_type, "size": os.path.getsize(job.local_path)} for job in file_jobs]
-        response = requests.post(url, headers=headers, json={"ops": ops})
+        response = requests.post(url, params={"authorization": self.token}, headers=headers, json={"ops": ops})
         try:
             response.raise_for_status()
         except HTTPError as e:
@@ -243,7 +283,7 @@ class ElvClient():
         ordered_paths = []
         # iterate through the pages of file jobs
         while next_start != -1:
-            response = requests.get(url, params={"start": next_start}, headers={"Authorization": f"Bearer {self.token}"})
+            response = requests.get(url, params={"start": next_start, "authorization": self.token})
             response.raise_for_status()
             file_info = response.json()
             next_start = file_info["next"]
@@ -258,10 +298,9 @@ class ElvClient():
 
         # upload buffer
         upload_url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'file_jobs', job_id, file_job_id)
-        headers = {"Authorization": f"Bearer {self.token}",
-                   "Accept": "application/json",
+        headers = {"Accept": "application/json",
                    "Content-Type": "application/octet-stream"}
-        response = requests.post(upload_url, headers=headers, data=data_buffer)
+        response = requests.post(upload_url, params={"authorization": self.token}, headers=headers, data=data_buffer)
         try:
             response.raise_for_status()
         except HTTPError as e:
@@ -277,7 +316,7 @@ class ElvClient():
                        library_id: str) -> None:
         # finalize upload, write token cannot be used to upload more files after this
         url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'files')
-        response = requests.post(url, headers={"Authorization": f"Bearer {self.token}"})
+        response = requests.post(url, params={"authorization": self.token})
         try:
             response.raise_for_status()
         except HTTPError as e:
@@ -297,15 +336,14 @@ class ElvClient():
             path = path[:-1]
         id = write_token or version_hash or object_id
         if not id:
-            raise Exception("Object ID, Version Hash, or Write Token must be specified")
+            raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
         url = build_url(url, 'q', id, 'files_list')
         if path:
             url = build_url(url, path)
-        headers = {"Authorization": f"Bearer {self.token}"}
-        response = get(url, headers=headers)
+        response = get(url, params={"authorization": self.token})
         response = get_from_path(response, path)
         result = []
         for entry, info in response.items():
@@ -331,8 +369,7 @@ class ElvClient():
         id = write_token or version_hash or object_id
         url = build_url(url, 'q', id, 'files', quote(file_path))
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        headers = {"Authorization": f"Bearer {self.token}"}
-        response = requests.get(url, headers=headers, stream=True)
+        response = requests.get(url, params={"authorization": self.token}, stream=True)
         if response.status_code == 200:
             with open(dest_path, "wb") as file:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -347,7 +384,7 @@ class ElvClient():
                         object_id: Optional[str]=None,
                         version_hash: Optional[str]=None,
                         write_token: Optional[str]=None,
-    ) -> Optional[Exception]:
+    ) -> Optional[ValueError]:
         url = self._get_host()
         if library_id:
             url = build_url(url, 'qlibs', library_id)
@@ -357,17 +394,16 @@ class ElvClient():
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         except PermissionError as e:
             return PermissionError(f"Failed to create output directory {os.path.dirname(dest_path)}: {e}")
-        headers = {"Authorization": f"Bearer {self.token}"}
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with aiohttp.ClientSession() as session:
             async with self.semaphore:
-                async with session.get(url) as response:
+                async with session.get(url, params={"authorization": self.token}) as response:
                     if response.status != 200:
                         return HTTPError(f"Failed to download file {file_path}: {response.status}, {response.text}")
                     try:    
                         with open(dest_path, "wb") as file:
                             async for chunk in response.content.iter_chunked(8192):
                                 file.write(chunk)
-                    except Exception as e:
+                    except ValueError as e:
                         return IOError(f"Failed to write file {dest_path}: {e}")
         return None
                         
@@ -411,7 +447,7 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None,
-    ) -> List[Optional[Exception]]:
+    ) -> List[Optional[ValueError]]:
         """Downloads a list of files to a destination directory.
 
         Args:
@@ -423,8 +459,10 @@ class ElvClient():
             write_token: Write Token
 
         Returns:
-            List of exceptions for each file download, or None if successful
+            List of ValueErrors for each file download, or None if successful
         """
+        self._check_thread()
+
         if not os.path.exists(dest_path):
             os.makedirs(dest_path)
         
@@ -439,7 +477,12 @@ class ElvClient():
                                                       write_token=write_token))
             return await asyncio.gather(*tasks, return_exceptions=True)
 
-        return asyncio.run(fetch_all(file_jobs))
+        return self.loop.run_until_complete(fetch_all(file_jobs))
+    
+    def _check_thread(self):
+        """Ensure the client is only accessed from the same thread."""
+        if threading.get_ident() != self.thread_id:
+            raise RuntimeError("ElvClient currently only supports single-threaded access for async operations.")
 
     def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         commit_data = {"commit": {"message": message, "timestamp": datetime.now().isoformat(timespec='microseconds') + 'Z'}}

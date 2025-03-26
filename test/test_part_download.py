@@ -40,6 +40,21 @@ def test_download_part(client: ElvClient) -> List[Callable]:
         return os.path.exists(save_path) and os.path.getsize(save_path) > 1e5
     return [t1, t2]
 
+def test_download_unencrypted_part(client: ElvClient) -> List[Callable]:
+    qid = config['objects']['mezz']['qid']
+    libid = config['objects']['mezz']['library']
+    part = "hqp_6cfwb5cd1rmuaQ7Niqm3JKHnXSgwTHdAmJfzjzTdLz1ARNc"
+    filedir = os.path.dirname(os.path.abspath(__file__))
+    if os.path.exists(os.path.join(filedir, 'out.txt')):
+        os.remove(os.path.join(filedir, 'out.txt'))
+    def t1():
+        save_path = os.path.join(filedir, 'out.txt')
+        print(f"Downloading part to {save_path}")
+        client.download_part(object_id=qid, part_hash=part, save_path=save_path)
+        assert os.path.exists(save_path) and os.path.getsize(save_path) > 1e3
+        return "passed"
+    return [t1]
+
 def main():
     cwd = os.path.dirname(os.path.abspath(__file__))
     tester = Tester(os.path.join(cwd, 'test_results'))
@@ -48,6 +63,7 @@ def main():
     client2 = ElvClient.from_configuration_url(config["config_url"], static_token=TOK)
     tester.register('download_part_test', test_cases=test_download_part(client))
     tester.register('download_part_test_from_config', test_cases=test_download_part(client2))
+    tester.register('test_download_unencrypted_part', test_cases=test_download_unencrypted_part(client))
     if args.record:
         tester.record(args.tests)
     else:
