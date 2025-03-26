@@ -329,7 +329,8 @@ class ElvClient():
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
                     write_token: Optional[str]=None,
-                    path: Optional[str]="/") -> List[str]:
+                    path: Optional[str]="/",
+                    get_info: bool=False) -> List[str]:
         if path.startswith("/"):
             path = path[1:]
         if path.endswith("/"):
@@ -345,6 +346,9 @@ class ElvClient():
             url = build_url(url, path)
         response = get(url, params={"authorization": self.token})
         response = get_from_path(response, path)
+        if get_info:
+            # return full response which contains file sizes
+            return response
         result = []
         for entry, info in response.items():
             if entry == ".":

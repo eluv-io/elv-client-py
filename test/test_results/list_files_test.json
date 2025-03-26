@@ -16,5 +16,76 @@
         "logo.json",
         "ocr.json",
         "shot.json"
-    ]
+    ],
+    {
+        ".": {
+            "type": "directory"
+        },
+        "asr.json": {
+            ".": {
+                "size": 52324,
+                "parts": [
+                    8
+                ],
+                "encryption": {
+                    "scheme": "none"
+                }
+            }
+        },
+        "caption.json": {
+            ".": {
+                "size": 12662,
+                "parts": [
+                    7
+                ],
+                "encryption": {
+                    "scheme": "none"
+                }
+            }
+        },
+        "celeb.json": {
+            ".": {
+                "size": 1647,
+                "parts": [
+                    11
+                ],
+                "encryption": {
+                    "scheme": "none"
+                }
+            }
+        },
+        "logo.json": {
+            ".": {
+                "size": 2,
+                "parts": [
+                    12
+                ],
+                "encryption": {
+                    "scheme": "none"
+                }
+            }
+        },
+        "ocr.json": {
+            ".": {
+                "size": 904,
+                "parts": [
+                    9
+                ],
+                "encryption": {
+                    "scheme": "none"
+                }
+            }
+        },
+        "shot.json": {
+            ".": {
+                "size": 1423,
+                "parts": [
+                    10
+                ],
+                "encryption": {
+                    "scheme": "none"
+                }
+            }
+        }
+    }
 ]

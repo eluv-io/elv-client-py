@@ -57,7 +57,8 @@ def test_list_files(client: ElvClient) -> List[Callable]:
     t1 = lambda: client.list_files(object_id=qid, library_id=libid)
     t2 = lambda: client.list_files(object_id=qid, library_id=libid, path='video_tags')
     t3 = lambda: client.list_files(object_id=qid, library_id=libid, path='video_tags/tracks')
-    return [t1, t2, t3]
+    t4 = lambda: client.list_files(object_id=qid, library_id=libid, path='video_tags/tracks', get_info=True)
+    return [t1, t2, t3, t4]
 
 def test_download_file(client: ElvClient) -> List[Callable]:
     qid = config['objects']['mezz']['12AngryMen']
