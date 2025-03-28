@@ -63,8 +63,8 @@ def get(url: str, params: Dict[str, Any]=None, headers: Dict[str, str]=None) -> 
 
     return response.json()
 
-def post(url: str, params: dict=None, body: Dict[str, Any]=None, headers: Dict[str, str]=None) -> Any:
-    response = requests.post(url, params=params, headers=headers, json=params)
+def post(url: str, params: Dict[str, Any]=None, body: Dict[str, Any]=None, headers: Dict[str, str]=None) -> Any:
+    response = requests.post(url, params=params, headers=headers, json=body)
 
     response.raise_for_status()
 

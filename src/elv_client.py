@@ -96,9 +96,8 @@ class ElvClient():
         if host is None:
             host = self._get_host()
         url = build_url(host, path)
-        params["authorization"] = self.token
 
-        return post(url, params=params)
+        return post(url, body=params, params={"authorization": self.token})
     
     # Search on a given index object
     def search(self, 
