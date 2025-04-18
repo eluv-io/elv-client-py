@@ -5,7 +5,7 @@ import time
 
 from quick_test_py import Tester
 
-from elv_client_py import ElvClient
+from src.elv_client import ElvClient
 
 config = {
     'fabric_config': 'https://main.net955305.contentfabric.io/config',
@@ -25,8 +25,8 @@ def crawl_test() -> List[Callable]:
         qid = client.content_object(write_token=qwt)['id']
         latest_version = client.content_object(object_id=qid)['hash']
         lro_status = client.crawl(write_token=qwt)
-        print(lro_status)
-        time.sleep(15)
+        while client.crawl_status(write_token=qwt, lro_handle=lro_status)['state'] != 'terminated':
+            time.sleep(5)
         last_crawled_hash = client.content_object_metadata(write_token=qwt, metadata_subtree='indexer/last_run')
         assert last_crawled_hash == latest_version, f"Expected {latest_version}, got {last_crawled_hash}"
         return ["passed"]

@@ -131,6 +131,24 @@ class ElvClient():
             raise ValueError("No token available")
         url = self._get_search_host()
         return self.call_bitcode_method("search_update", library_id=library_id, write_token=write_token, params={}, host=url, representation=False)
+    
+    def crawl_status(self,
+                        write_token: str,
+                        lro_handle: str,
+                        library_id: Optional[str]=None,
+                        ) -> dict:
+        """Checks the status of a crawl operation.
+        Args:
+            write_token (str): write token of index object
+            lro_handle (str): lro handle of the crawl operation
+            library_id (Optional[str], optional): library id. Defaults to None.
+        Returns:
+            dict: status of the crawl operation
+        """
+        if not self.token:
+            raise ValueError("No token available")
+        url = self._get_search_host()
+        return self.call_bitcode_method("crawl_status", library_id=library_id, write_token=write_token, params=lro_handle, host=url, representation=False)
 
     def content_object_library_id(self, 
                        object_id: Optional[str]=None, 
