@@ -135,14 +135,20 @@ class ElvClient():
         url = self._get_search_host()
         return self.call_bitcode_method("search_update", library_id=library_id, write_token=write_token, params={}, host=url, representation=False)
     
-    def update_site(self, site_qwt: str, ids_to_add: List[str], ids_to_remove: List[str], site_path: str="/site_map/searchables", item_subpath: str="meta") -> dict:
+    def update_site(self, 
+                    site_qwt: str, 
+                    ids_to_add: List[str], 
+                    ids_to_remove: List[str],
+                    replace_all: bool=False,
+                    site_path: str="/site_map/searchables", 
+                    item_subpath: str="meta") -> dict:
         """Update the site with the given IDs.
 
         Args:
             site_qwt (str): write token of the site object to update
             ids_to_add (List[str]): ids to add to the site, ids already present will be ignored
             ids_to_remove (List[str]): a set of ids to remove from the site
-            client (ElvClient): elv client instance with access to the site
+            replace_all (bool, optional): if True, all ids will be replaced with the new ids. Defaults to False.
             site_path (str, optional): path in the site object to the site map. Defaults to "/site_map/searchables".
             item_subpath (str, optional): starting path in the item to crawl, defaults to "meta" which means start at the root. 
                 If you want to start at "searchables" for instance specify "meta/searchables"
@@ -155,7 +161,14 @@ class ElvClient():
         except Exception as e:
             raise RuntimeError(f"Failed to get current IDs: {e}") from e
         
-        all_qids = set(current_ids) - set(ids_to_remove) | set(ids_to_add)
+        if replace_all:
+            all_qids = set(ids_to_add)
+        else:
+            all_qids = set(current_ids) - set(ids_to_remove) | set(ids_to_add)
+            
+        if len(all_qids) == 0:
+            raise ValueError("Site has no qids")
+        
         all_qids = sorted(all_qids)
         
         failed = []
