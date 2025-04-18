@@ -91,7 +91,7 @@ class ElvClient():
             raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         call_type = 'rep' if representation else 'call'
         if not library_id:
-            library_id = self.content_object_library_id(object_id, version_hash)
+            library_id = self.content_object_library_id(object_id, version_hash, write_token)
         path = build_url('qlibs', library_id, 'q', id, call_type, method)
         if host is None:
             host = self._get_host()
@@ -112,7 +112,26 @@ class ElvClient():
             raise ValueError("No token available")
         host = self._get_search_host()
         return self.call_bitcode_method("search", library_id=library_id, object_id=object_id, version_hash=version_hash, write_token=write_token, params=query, host=host, representation=True)
-    
+
+    def crawl(self,
+                write_token: str,
+                library_id: Optional[str]=None,
+                ) -> dict:
+        """Initiates crawl against the write token on a search host.
+
+        Args:
+            write_token (str): write token of index object
+            library_id (Optional[str], optional): library id. Defaults to None.
+
+        Returns:
+            dict: lro handle
+        """
+        
+        if not self.token:
+            raise ValueError("No token available")
+        url = self._get_search_host()
+        return self.call_bitcode_method("search_update", library_id=library_id, write_token=write_token, params={}, host=url, representation=False)
+
     def content_object_library_id(self, 
                        object_id: Optional[str]=None, 
                        version_hash: Optional[str]=None,
