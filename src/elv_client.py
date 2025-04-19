@@ -129,18 +129,18 @@ class ElvClient():
         Returns:
             dict: lro handle
         """
-        
+
         if not self.token:
             raise ValueError("No token available")
         url = self._get_search_host()
         return self.call_bitcode_method("search_update", library_id=library_id, write_token=write_token, params={}, host=url, representation=False)
-    
+
     def update_site(self, 
                     site_qwt: str, 
                     ids_to_add: List[str], 
                     ids_to_remove: List[str],
                     replace_all: bool=False,
-                    site_path: str="/site_map/searchables", 
+                    site_path: str="site_map/searchables",
                     item_subpath: str="meta") -> dict:
         """Update the site with the given IDs.
 
@@ -160,17 +160,17 @@ class ElvClient():
             current_ids = self._get_current_ids(site_qwt, site_path)
         except Exception as e:
             raise RuntimeError(f"Failed to get current IDs: {e}") from e
-        
+
         if replace_all:
             all_qids = set(ids_to_add)
         else:
             all_qids = set(current_ids) - set(ids_to_remove) | set(ids_to_add)
-            
+
         if len(all_qids) == 0:
             raise ValueError("Site has no qids")
-        
+
         all_qids = sorted(all_qids)
-        
+
         failed = []
 
         links = {}
@@ -185,25 +185,23 @@ class ElvClient():
             links[str(idx)] = link
             idx += 1
 
-        site_data = json.dumps({"site_map": {"searchables": links}})
-        
         try:
             qlib = self.content_object_library_id(object_id=site_qwt)
             self.set_commit_message(site_qwt, "Updated site map", qlib)
         except Exception as e:
             raise RuntimeError(f"Failed to set commit message: {e}") from e
-        
+
         try:
             self.replace_metadata(
                 write_token=site_qwt,
-                metadata=site_data,
+                metadata=links,
                 library_id=qlib,
                 metadata_subtree=site_path,
             )
         except HTTPError as e:
             logger.error(f"Failed to update site map: {e}")
             raise RuntimeError(f"Failed to update site map: {e}") from e
-        
+
         if len(failed) > 0:
             msg = "Failed to add some links to the site map"
         else:
