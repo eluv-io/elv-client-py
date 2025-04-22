@@ -9,7 +9,6 @@ from src.elv_client import ElvClient
 
 config = {
     'fabric_config': 'https://main.net955305.contentfabric.io/config',
-    'search_uris': ["https://host-154-14-185-100.contentfabric.io"],
     'env_auth_token': 'TEST_AUTH',
     'crawl_qwt': 'TEST_QWT',
     'site_qwt': 'TEST_QWT2',
@@ -20,13 +19,13 @@ def crawl_test() -> List[Callable]:
     auth = os.getenv(config['env_auth_token'])
 
     client = ElvClient.from_configuration_url(config['fabric_config'], static_token=auth)
-    client.search_uris = config['search_uris']
 
     def t1():
         qid = client.content_object(write_token=qwt)['id']
         latest_version = client.content_object(object_id=qid)['hash']
         lro_status = client.crawl(write_token=qwt)
-        while client.crawl_status(write_token=qwt, lro_handle=lro_status)['state'] != 'terminated':
+        lro_handle = lro_status['lro_handle']
+        while client.crawl_status(write_token=qwt, lro_handle=lro_handle)['state'] != 'terminated':
             time.sleep(5)
         last_crawled_hash = client.content_object_metadata(write_token=qwt, metadata_subtree='indexer/last_run')
         assert last_crawled_hash == latest_version, f"Expected {latest_version}, got {last_crawled_hash}"
@@ -45,7 +44,6 @@ def site_test() -> List[Callable]:
     remove_contents = ["iq__AcgxshZahq6zM9QejDnMqs1HAjm"]
 
     client = ElvClient.from_configuration_url(config['fabric_config'], static_token=auth)
-    client.search_uris = config['search_uris']
 
     def t1():
         qid = client.content_object(write_token=qwt)['id']
@@ -54,6 +52,10 @@ def site_test() -> List[Callable]:
         status = client.update_site(site_qwt=qwt, ids_to_add=new_content, ids_to_remove=remove_contents)
 
         site_meta = client.content_object_metadata(write_token=qwt, metadata_subtree='site_map/searchables')
+
+        for link in site_meta.values():
+            del link["."]
+
         return [status, site_meta]
 
     return [t1]

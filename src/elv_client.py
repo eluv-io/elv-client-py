@@ -246,7 +246,7 @@ class ElvClient():
         if not self.token:
             raise ValueError("No token available")
         url = self._get_search_host()
-        return self.call_bitcode_method("crawl_status", library_id=library_id, write_token=write_token, params=lro_handle, host=url, representation=False)
+        return self.call_bitcode_method("crawl_status", library_id=library_id, write_token=write_token, params={"lro_handle": lro_handle}, host=url, representation=False)
 
     def content_object_library_id(self, 
                        object_id: Optional[str]=None, 
