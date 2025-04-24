@@ -1,16 +1,19 @@
 
 from typing import Any, Dict
 from typing import List, Optional, Tuple
-from loguru import logger
-import requests
-from requests.exceptions import HTTPError
 from dataclasses import dataclass
 import os
-import aiohttp
 import asyncio
 from datetime import datetime
 from urllib.parse import quote
 import threading
+import json
+
+import aiohttp
+import requests
+from requests.exceptions import HTTPError
+from loguru import logger
+from tqdm import tqdm
 
 from .utils import get, build_url, post, get_from_path
 from .config import config
@@ -91,7 +94,7 @@ class ElvClient():
             raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         call_type = 'rep' if representation else 'call'
         if not library_id:
-            library_id = self.content_object_library_id(object_id, version_hash)
+            library_id = self.content_object_library_id(object_id, version_hash, write_token)
         path = build_url('qlibs', library_id, 'q', id, call_type, method)
         if host is None:
             host = self._get_host()
@@ -112,7 +115,139 @@ class ElvClient():
             raise ValueError("No token available")
         host = self._get_search_host()
         return self.call_bitcode_method("search", library_id=library_id, object_id=object_id, version_hash=version_hash, write_token=write_token, params=query, host=host, representation=True)
-    
+
+    def crawl(self,
+                write_token: str,
+                library_id: Optional[str]=None,
+                ) -> dict:
+        """Initiates crawl against the write token on a search host.
+
+        Args:
+            write_token (str): write token of index object
+            library_id (Optional[str], optional): library id. Defaults to None.
+
+        Returns:
+            dict: lro handle
+        """
+
+        if not self.token:
+            raise ValueError("No token available")
+        url = self._get_search_host()
+        return self.call_bitcode_method("search_update", library_id=library_id, write_token=write_token, params={}, host=url, representation=False)
+
+    def update_site(self, 
+                    site_qwt: str, 
+                    ids_to_add: List[str], 
+                    ids_to_remove: List[str],
+                    replace_all: bool=False,
+                    site_path: str="site_map/searchables",
+                    item_subpath: str="meta") -> dict:
+        """Update the site with the given IDs.
+
+        Args:
+            site_qwt (str): write token of the site object to update
+            ids_to_add (List[str]): ids to add to the site, ids already present will be ignored
+            ids_to_remove (List[str]): a set of ids to remove from the site
+            replace_all (bool, optional): if True, all ids will be replaced with the new ids. Defaults to False.
+            site_path (str, optional): path in the site object to the site map. Defaults to "/site_map/searchables".
+            item_subpath (str, optional): starting path in the item to crawl, defaults to "meta" which means start at the root. 
+                If you want to start at "searchables" for instance specify "meta/searchables"
+
+        Returns:
+            status
+        """
+        try:
+            current_ids = self._get_current_ids(site_qwt, site_path)
+        except Exception as e:
+            raise RuntimeError(f"Failed to get current IDs: {e}") from e
+
+        if replace_all:
+            all_qids = set(ids_to_add)
+        else:
+            all_qids = set(current_ids) - set(ids_to_remove) | set(ids_to_add)
+
+        if len(all_qids) == 0:
+            raise ValueError("Site has no qids")
+
+        all_qids = sorted(all_qids)
+
+        failed = []
+
+        links = {}
+        idx = 1
+        for qid in tqdm(all_qids, desc="Adding links"):
+            try:
+                link = self._get_link(qid, item_subpath)
+            except Exception as e:
+                logger.error(f"Failed to get link for {qid}: {e}")
+                failed.append(qid)
+                continue
+            links[str(idx)] = link
+            idx += 1
+
+        try:
+            qlib = self.content_object_library_id(object_id=site_qwt)
+            self.set_commit_message(site_qwt, "Updated site map", qlib)
+        except Exception as e:
+            raise RuntimeError(f"Failed to set commit message: {e}") from e
+
+        try:
+            self.replace_metadata(
+                write_token=site_qwt,
+                metadata=links,
+                library_id=qlib,
+                metadata_subtree=site_path,
+            )
+        except HTTPError as e:
+            logger.error(f"Failed to update site map: {e}")
+            raise RuntimeError(f"Failed to update site map: {e}") from e
+
+        if len(failed) > 0:
+            msg = "Failed to add some links to the site map"
+        else:
+            msg = "Successfully updated site map"
+
+        return {"message": msg, "failed": failed}
+
+    def _get_link(self, qid: str, path: str) -> dict:
+        """Get a link to the most recent version of the given qid, at the given metadata path."""
+        latest_version = self.content_object(object_id=qid)["hash"]
+        return {"/": f"/qfab/{latest_version}/{path}"}
+
+    def _get_current_ids(self, site_qwt: str, site_path: str="/site_map/searchables") -> List[str]:
+        """Get the current IDs from the site."""
+        try:
+            site_map = self.content_object_metadata(write_token=site_qwt, metadata_subtree=site_path, resolve_links=False)
+        except HTTPError:
+            logger.info(f"Found no objects in site for {site_qwt}")
+            return []
+
+        current_ids = []
+        for k, link in site_map.items():
+            qhash = link["/"].split('/')[2]
+            qid = self.content_object(qhash)["id"]
+            current_ids.append(qid)
+
+        return current_ids
+
+    def crawl_status(self,
+                        write_token: str,
+                        lro_handle: str,
+                        library_id: Optional[str]=None,
+                        ) -> dict:
+        """Checks the status of a crawl operation.
+        Args:
+            write_token (str): write token of index object
+            lro_handle (str): lro handle of the crawl operation
+            library_id (Optional[str], optional): library id. Defaults to None.
+        Returns:
+            dict: status of the crawl operation
+        """
+        if not self.token:
+            raise ValueError("No token available")
+        url = self._get_search_host()
+        return self.call_bitcode_method("crawl_status", library_id=library_id, write_token=write_token, params={"lro_handle": lro_handle}, host=url, representation=False)
+
     def content_object_library_id(self, 
                        object_id: Optional[str]=None, 
                        version_hash: Optional[str]=None,
