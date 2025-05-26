@@ -1,22 +1,22 @@
 
-from typing import Any, Dict
-from typing import List, Optional, Tuple
-from dataclasses import dataclass
-import os
 import asyncio
-from datetime import datetime
-from urllib.parse import quote
-import threading
 import json
+import os
+import threading
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import quote
 
 import aiohttp
 import requests
-from requests.exceptions import HTTPError
 from loguru import logger
+from requests.exceptions import HTTPError
 from tqdm import tqdm
 
-from .utils import get, build_url, post, get_from_path
 from .config import config
+from .utils import build_url, get, get_from_path, post
+
 
 class ElvClient():
     def __init__(self, fabric_uris: List[str], search_uris: List[str]=[], static_token: str=""):
@@ -26,7 +26,6 @@ class ElvClient():
         self.semaphore = asyncio.Semaphore(config["client"]["max_concurrent_requests"])
         self.loop = asyncio.new_event_loop()
         self.thread_id = threading.get_ident()
-
     @staticmethod
     def from_configuration_url(config_url: str, static_token: str=""):
         config = get(config_url)
@@ -42,7 +41,7 @@ class ElvClient():
         if not search_uris:
             logger.warning("No Search URIs available in the configuration")
         return ElvClient(fabric_uris, search_uris, static_token)
-    
+
     def set_static_token(self, token: str):
         self.token = token
 
@@ -50,19 +49,19 @@ class ElvClient():
         if len(self.fabric_uris) == 0:
             raise ValueError("No Fabric URIs available")
         return self.fabric_uris[0]
-    
+
     def _get_search_host(self) -> str:
         if len(self.search_uris) == 0:
             raise ValueError("No Search URIs available")
         return self.search_uris[0]
-    
-    def content_object_metadata(self, 
-                                library_id: Optional[str]=None, 
-                                object_id: Optional[str]=None, 
-                                version_hash: Optional[str]=None, 
+
+    def content_object_metadata(self,
+                                library_id: Optional[str]=None,
+                                object_id: Optional[str]=None,
+                                version_hash: Optional[str]=None,
                                 write_token: Optional[str]=None,
                                 metadata_subtree: str="",
-                                select: Optional[str]=None, 
+                                select: Optional[str]=None,
                                 remove: Optional[str]=None,
                                 resolve_links: bool=False
                                 ) -> Any:
@@ -77,12 +76,12 @@ class ElvClient():
         url = build_url(url, 'q', id, 'meta', quote(metadata_subtree))
 
         return get(url, {"select": select, "remove": remove, "resolve_links": resolve_links, "authorization": self.token})
-    
-    def call_bitcode_method(self, 
-                            method: str, 
-                            library_id: Optional[str]=None, 
-                            object_id: Optional[str]=None, 
-                            version_hash: Optional[str]=None, 
+
+    def call_bitcode_method(self,
+                            method: str,
+                            library_id: Optional[str]=None,
+                            object_id: Optional[str]=None,
+                            version_hash: Optional[str]=None,
                             write_token: Optional[str]=None,
                             params: Dict[str, Any]={},
                             representation: bool=False,
@@ -101,11 +100,11 @@ class ElvClient():
         url = build_url(host, path)
 
         return post(url, body=params, params={"authorization": self.token})
-    
+
     # Search on a given index object
-    def search(self, 
+    def search(self,
                 query: Dict[str, Any],
-                library_id: Optional[str]=None, 
+                library_id: Optional[str]=None,
                 object_id: Optional[str]=None,
                 version_hash: Optional[str]=None,
                 write_token: Optional[str]=None
@@ -135,9 +134,9 @@ class ElvClient():
         url = self._get_search_host()
         return self.call_bitcode_method("search_update", library_id=library_id, write_token=write_token, params={}, host=url, representation=False)
 
-    def update_site(self, 
-                    site_qwt: str, 
-                    ids_to_add: List[str], 
+    def update_site(self,
+                    site_qwt: str,
+                    ids_to_add: List[str],
                     ids_to_remove: List[str],
                     replace_all: bool=False,
                     site_path: str="site_map/searchables",
@@ -150,7 +149,7 @@ class ElvClient():
             ids_to_remove (List[str]): a set of ids to remove from the site
             replace_all (bool, optional): if True, all ids will be replaced with the new ids. Defaults to False.
             site_path (str, optional): path in the site object to the site map. Defaults to "/site_map/searchables".
-            item_subpath (str, optional): starting path in the item to crawl, defaults to "meta" which means start at the root. 
+            item_subpath (str, optional): starting path in the item to crawl, defaults to "meta" which means start at the root.
                 If you want to start at "searchables" for instance specify "meta/searchables"
 
         Returns:
@@ -248,8 +247,8 @@ class ElvClient():
         url = self._get_search_host()
         return self.call_bitcode_method("crawl_status", library_id=library_id, write_token=write_token, params={"lro_handle": lro_handle}, host=url, representation=False)
 
-    def content_object_library_id(self, 
-                       object_id: Optional[str]=None, 
+    def content_object_library_id(self,
+                       object_id: Optional[str]=None,
                        version_hash: Optional[str]=None,
                        write_token: Optional[str]=None
                        ) -> str:
@@ -270,7 +269,7 @@ class ElvClient():
             raise ValueError("Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', id)
         return get(url, params={"authorization": self.token})
-    
+
     def content_object_versions(self,
                        object_id: str,
                        library_id: str) -> Dict[str, Any]:
@@ -281,10 +280,10 @@ class ElvClient():
             raise ValueError("Library ID must be specified for listing content versions")
         url = build_url(url, 'qlibs', library_id, 'qid', object_id)
         return get(url, params={"authorization": self.token})
-    
+
     def download_part(self,
                     part_hash: str,
-                    save_path: str, 
+                    save_path: str,
                     library_id: Optional[str]=None,
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
@@ -296,7 +295,7 @@ class ElvClient():
 
     def _download_encrypted_part(self,
                     part_hash: str,
-                    save_path: str, 
+                    save_path: str,
                     library_id: Optional[str]=None,
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
@@ -315,14 +314,14 @@ class ElvClient():
         if response.status_code == 200:
             with open(save_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:  
+                    if chunk:
                         file.write(chunk)
         else:
             response.raise_for_status()
 
     def _download_unencrypted_part(self,
                     part_hash: str,
-                    save_path: str, 
+                    save_path: str,
                     library_id: Optional[str]=None,
                     object_id: Optional[str]=None,
                     version_hash: Optional[str]=None,
@@ -341,7 +340,7 @@ class ElvClient():
         if response.status_code == 200:
             with open(save_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:  
+                    if chunk:
                         file.write(chunk)
         else:
             response.raise_for_status()
@@ -361,7 +360,7 @@ class ElvClient():
         headers = {"Accept": "application/json", "Content-Type": "application/json"}
         response = requests.post(url, params={"authorization": self.token}, headers=headers, json=metadata)
         response.raise_for_status()
-    
+
     def replace_metadata(self,
                        write_token: str,
                        metadata: Any,
@@ -444,7 +443,7 @@ class ElvClient():
 
         if finalize:
             self.finalize_files(write_token, library_id)
-            
+
     def finalize_files(self,
                        write_token: str,
                        library_id: str) -> None:
@@ -492,7 +491,7 @@ class ElvClient():
             else:
                 result.append(entry)
         return result
-    
+
     def download_file(self,
                         file_path: str,
                         dest_path: str,
@@ -537,14 +536,14 @@ class ElvClient():
                 async with session.get(url, params={"authorization": self.token}) as response:
                     if response.status != 200:
                         return HTTPError(f"Failed to download file {file_path}: {response.status}, {response.text}")
-                    try:    
+                    try:
                         with open(dest_path, "wb") as file:
                             async for chunk in response.content.iter_chunked(8192):
                                 file.write(chunk)
                     except ValueError as e:
                         return IOError(f"Failed to write file {dest_path}: {e}")
         return None
-                        
+
     def download_directory(self,
                         dest_path: str,
                         fabric_path: Optional[str]="/",
@@ -576,7 +575,7 @@ class ElvClient():
         paths = crawl_files(fabric_path)
 
         return self.download_files([(path, path.removeprefix(fabric_path)) for path in paths], dest_path, library_id, object_id, version_hash, write_token)
-        
+
     def download_files(
                     self,
                     file_jobs: List[Tuple[str, str]],
@@ -603,7 +602,7 @@ class ElvClient():
 
         if not os.path.exists(dest_path):
             os.makedirs(dest_path)
-        
+
         # Asynchronous function to handle multiple requests
         async def fetch_all(fabric_file_path: List[str]):
             tasks = []
@@ -616,7 +615,7 @@ class ElvClient():
             return await asyncio.gather(*tasks, return_exceptions=True)
 
         return self.loop.run_until_complete(fetch_all(file_jobs))
-    
+
     def _check_thread(self):
         """Ensure the client is only accessed from the same thread."""
         if threading.get_ident() != self.thread_id:
@@ -625,3 +624,8 @@ class ElvClient():
     def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         commit_data = {"commit": {"message": message, "timestamp": datetime.now().isoformat(timespec='microseconds') + 'Z'}}
         self.merge_metadata(write_token, commit_data, library_id=library_id)
+
+    def __del__(self):
+        if self.loop.is_running():
+            self.loop.stop()
+        self.loop.close()
