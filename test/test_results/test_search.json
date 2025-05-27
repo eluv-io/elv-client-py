@@ -2,7 +2,7 @@
     {
         "pagination": {
             "limit": 1,
-            "max_total": 0,
+            "max_total": 80,
             "start": 0,
             "total": 4
         },
@@ -23,7 +23,7 @@
     {
         "pagination": {
             "limit": 1,
-            "max_total": 0,
+            "max_total": 80,
             "start": 0,
             "total": 4
         },
