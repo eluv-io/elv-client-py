@@ -164,7 +164,8 @@ class ElvClient():
         library_id: Optional[str] = None,
         object_id: Optional[str] = None,
         version_hash: Optional[str] = None,
-        write_token: Optional[str] = None
+        write_token: Optional[str] = None,
+        use_post: bool = False
     ) -> Any:
         """Search an index
 
@@ -179,7 +180,8 @@ class ElvClient():
         if not self.token:
             raise ValueError("No token available")
         host = self._get_search_host()
-        return self.call_bitcode_method("search", method_type="GET", library_id=library_id, object_id=object_id, version_hash=version_hash, write_token=write_token, params=query, host=host, representation=True)
+        method_type = "POST" if use_post else "GET"
+        return self.call_bitcode_method("search", method_type=method_type, library_id=library_id, object_id=object_id, version_hash=version_hash, write_token=write_token, params=query, host=host, representation=True)
 
     def crawl(
         self,
