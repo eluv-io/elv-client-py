@@ -12,5 +12,5 @@ setup(
                       'loguru',
                       'pyyaml',
                       'tqdm',
-                      'quick_test_py @ git+https://github.com/elv-nickB/quick_test_py.git#egg=quick_test_py'],
+                      'quick_test_py @ git+https://github.com/eluv-io/quick-test-py.git#egg=quick_test_py'],
 )
