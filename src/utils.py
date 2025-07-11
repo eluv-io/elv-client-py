@@ -77,25 +77,15 @@ def _request_json(
     Perform http request expecting a json response. Raises HTTPError on failure containing the status code, and 
     the json body of response if available.
     """
-    try:
-        response = requests.request(
-            method=method,
-            url=url,
-            params=params,
-            json=body,
-            headers=headers,
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.HTTPError as e:
-        try:
-            error_body = response.json()
-        except ValueError:
-            error_body = {"error": response.text}
-        raise requests.HTTPError(
-            json.dumps(error_body, indent=2),
-        ) from e
-
+    response = requests.request(
+        method=method,
+        url=url,
+        params=params,
+        json=body,
+        headers=headers,
+    )
+    response.raise_for_status()
+    return response.json()
 
 def get_json(
         url: str, 

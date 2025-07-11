@@ -2,6 +2,9 @@ import json
 import shutil
 import time
 from pathlib import Path
+from copy import copy
+
+from requests.exceptions import HTTPError
 
 
 def test_content_object_versions(client, config):
@@ -578,3 +581,73 @@ def test_update_site(client, site_token):
     assert "iq__AcgxshZahq6zM9QejDnMqs1HAjm" not in site_qids
 
     assert "BAD_ID" not in site_qids
+
+def test_http_error_with_invalid_object_id(client):
+    """Test that HTTPError messages include JSON error body for invalid object ID"""
+    
+    error = None
+    try:
+        client.content_object_metadata(object_id="iq__BAD")
+    except HTTPError as err:
+        error = err
+
+    assert error is not None
+
+    assert error.response.status_code == 404
+
+    err_msg = json.loads(error.response.text)
+
+    print(err_msg)
+
+    assert isinstance(err_msg, dict)
+    assert 'errors' in err_msg
+
+
+def test_http_error_with_invalid_metadata(client, config):
+    """Test that HTTPError messages include JSON error body for invalid object ID"""
+
+    qid = config['objects']['mezz']['12AngryMen']
+    
+    error = None
+    try:
+        client.content_object_metadata(object_id=qid, metadata_subtree='does/not/exist')
+    except HTTPError as err:
+        error = err
+
+    assert error is not None
+
+    assert error.response.status_code == 404
+
+    err_msg = json.loads(error.response.text)
+
+    print(json.loads(error.response.text))
+
+    assert isinstance(err_msg, dict)
+    assert 'errors' in err_msg
+
+def test_http_error_with_bad_auth(client, config):
+    """Test that HTTPError messages include JSON error body for invalid object ID"""
+
+    client = copy(client)
+
+    client.set_static_token('BAD')
+
+    qid = config['objects']['mezz']['12AngryMen']
+    
+    error = None
+    try:
+        client.content_object_metadata(object_id=qid, metadata_subtree='does/not/exist')
+    except HTTPError as err:
+        error = err
+
+    assert error is not None
+
+    # 400 because unknown auth scheme
+    assert error.response.status_code == 400
+
+    err_msg = json.loads(error.response.text)
+
+    print(json.loads(error.response.text))
+
+    assert isinstance(err_msg, dict)
+    assert 'errors' in err_msg
