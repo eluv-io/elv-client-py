@@ -6,11 +6,12 @@ setup(
     packages=['elv_client_py'],
     include_package_data=True,
     package_data={'elv_client_py': ['config.yml']},
-    install_requires=['requests', 
-                      'aiohttp',
-                      'base58',
-                      'loguru',
-                      'pyyaml',
-                      'tqdm'
+    install_requires=[
+        'requests', 
+        'aiohttp',
+        'base58',
+        'loguru',
+        'pyyaml',
+        'tqdm'
     ]
 )
