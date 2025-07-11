@@ -14,11 +14,11 @@ from requests.exceptions import HTTPError
 from tqdm import tqdm
 
 from .config import config
-from .utils import build_url, get, get_from_path, post
+from .utils import build_url, get_json, get_from_path, post_json
 
 
 class ElvClient():
-    """Client for interacting with the Eluvio Fabric API.
+    """Client for using the Eluvio Content Fabric API.
     """
 
     def __init__(self, fabric_uris: List[str], search_uris: List[str], static_token: str = ""):
@@ -42,7 +42,7 @@ class ElvClient():
         ```
         """
 
-        fconfig = get(config_url)
+        fconfig = get_json(config_url)
         services = fconfig.get("network", {}).get("services", {})
         if len(services) == 0:
             raise ValueError("No services available in the configuration")
@@ -80,7 +80,7 @@ class ElvClient():
         select: Optional[str] = None,
         remove: Optional[str] = None,
         resolve_links: bool = False
-    ) -> any:
+    ) -> Any:
         """Fetch metadata for a content object."""
 
         if not self.token:
@@ -98,12 +98,12 @@ class ElvClient():
 
         url = build_url(url, 'q', qhit, 'meta', quote(metadata_subtree))
 
-        return get(
+        return get_json(
             url,
             {
                 "select": select,
                 "remove": remove,
-                "resolve_links": resolve_links,
+                "resolve": resolve_links,
                 "authorization": self.token,
             }
         )
@@ -155,8 +155,8 @@ class ElvClient():
         url = build_url(host, path)
 
         if method_type == "GET":
-            return get(url, params={"authorization": self.token, **params})
-        return post(url, body=params, params={"authorization": self.token})
+            return get_json(url, params={"authorization": self.token, **params})
+        return post_json(url, body=params, params={"authorization": self.token})
 
     def search(
         self,
@@ -166,7 +166,7 @@ class ElvClient():
         version_hash: Optional[str] = None,
         write_token: Optional[str] = None,
         use_post: bool = False
-    ) -> Any:
+    ) -> dict[str, Any]:
         """Search an index
 
         Args:
@@ -234,7 +234,6 @@ class ElvClient():
         Returns:
             status
         """
-
         try:
             current_ids = self._get_current_ids(site_qwt, site_path)
         except Exception as e:
@@ -366,7 +365,7 @@ class ElvClient():
             raise ValueError(
                 "Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', qhit)
-        return get(url, params={"authorization": self.token})
+        return get_json(url, params={"authorization": self.token})
 
     def content_object_versions(
         self,
@@ -381,7 +380,7 @@ class ElvClient():
             raise ValueError(
                 "Library ID must be specified for listing content versions")
         url = build_url(url, 'qlibs', library_id, 'qid', object_id)
-        return get(url, params={"authorization": self.token})
+        return get_json(url, params={"authorization": self.token})
 
     def download_part(
         self,
@@ -651,7 +650,7 @@ class ElvClient():
         object_id: Optional[str] = None,
         version_hash: Optional[str] = None,
         write_token: Optional[str] = None,
-        path: Optional[str] = "/",
+        path: str = "/",
         get_info: bool = False
     ) -> List[str]:
         """Lists files in a content object.
@@ -679,7 +678,7 @@ class ElvClient():
         url = build_url(url, 'q', id, 'files_list')
         if path:
             url = build_url(url, path)
-        response = get(url, params={"authorization": self.token})
+        response = get_json(url, params={"authorization": self.token})
         response = get_from_path(response, path)
         if get_info:
             # return full response which contains file sizes
@@ -730,7 +729,7 @@ class ElvClient():
         object_id: Optional[str] = None,
         version_hash: Optional[str] = None,
         write_token: Optional[str] = None,
-    ) -> Optional[ValueError]:
+    ) -> Optional[Exception]:
         """Downloads a file from the content object to a local path asynchronously.
 
         Returns an Optional[ValueError] if an error occurs, or None if successful.
@@ -760,7 +759,7 @@ class ElvClient():
     def download_directory(
         self,
         dest_path: str,
-        fabric_path: Optional[str] = "/",
+        fabric_path: str = "/",
         library_id: Optional[str] = None,
         object_id: Optional[str] = None,
         version_hash: Optional[str] = None,
