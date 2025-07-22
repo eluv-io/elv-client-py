@@ -152,10 +152,12 @@ class ElvClient():
 
         if host is None:
             host = self._get_host()
+
         url = build_url(host, path)
 
         if method_type == "GET":
             return get_json(url, params={"authorization": self.token, **params})
+        
         return post_json(url, body=params, params={"authorization": self.token})
 
     def search(
@@ -234,10 +236,8 @@ class ElvClient():
         Returns:
             status
         """
-        try:
-            current_ids = self._get_current_ids(site_qwt, site_path)
-        except Exception as e:
-            raise RuntimeError(f"Failed to get current IDs: {e}") from e
+
+        current_ids, invalid_links = self._get_current_ids(site_qwt, site_path)
 
         if replace_all:
             all_qids = set(ids_to_add)
@@ -249,9 +249,8 @@ class ElvClient():
 
         all_qids = sorted(all_qids)
 
-        failed = []
-
         links = {}
+        failed = []
         idx = 1
         for qid in tqdm(all_qids, desc="Adding links"):
             try:
@@ -263,29 +262,28 @@ class ElvClient():
             links[str(idx)] = link
             idx += 1
 
-        try:
-            qlib = self.content_object_library_id(object_id=site_qwt)
-            self.set_commit_message(site_qwt, "Updated site map", qlib)
-        except Exception as e:
-            raise RuntimeError(f"Failed to set commit message: {e}") from e
+        qlib = self.content_object_library_id(object_id=site_qwt)
+        self.set_commit_message(site_qwt, "Updated site map", qlib)
 
-        try:
-            self.replace_metadata(
-                write_token=site_qwt,
-                metadata=links,
-                library_id=qlib,
-                metadata_subtree=site_path,
-            )
-        except HTTPError as e:
-            logger.error(f"Failed to update site map: {e}")
-            raise RuntimeError(f"Failed to update site map: {e}") from e
+        self.replace_metadata(
+            write_token=site_qwt,
+            metadata=links,
+            library_id=qlib,
+            metadata_subtree=site_path,
+        )
 
+        warnings = []
         if len(failed) > 0:
-            msg = "Failed to add some links to the site map"
-        else:
-            msg = "Successfully updated site map"
+            warnings.append(f"Failed to add some contents to the site map: [{', '.join(failed)}]")
+        if len(invalid_links) > 0:
+            warnings.append(f"Found some invalid links in the site map: [{', '.join(invalid_links)}]")
 
-        return {"message": msg, "failed": failed}
+        if warnings:
+            msg = "Some issues encountered while updating the site"
+        else:
+            msg = "Site updated successfully"
+        
+        return {"message": msg, "warnings": warnings}
 
     def _get_link(self, qid: str, path: str) -> dict:
         """Get a link to the most recent version of the given qid, at the given metadata path."""
@@ -296,22 +294,27 @@ class ElvClient():
         self,
         site_qwt: str,
         site_path: str = "/site_map/searchables"
-    ) -> List[str]:
+    ) -> tuple[list[str], list[str]]:
         """Get the current IDs from the site."""
         try:
             site_map = self.content_object_metadata(
                 write_token=site_qwt, metadata_subtree=site_path, resolve_links=False)
         except HTTPError:
             logger.info(f"Found no objects in site for {site_qwt}")
-            return []
+            return [], []
 
-        current_ids = []
+        current_ids, invalid_links = [], []
         for k, link in site_map.items():
-            qhash = link["/"].split('/')[2]
-            qid = self.content_object(qhash)["id"]
+            try:
+                qhash = link["/"].split('/')[2]
+                qid = self.content_object(qhash)["id"]
+            except Exception as e:
+                logger.error(f"Bad link for {k}: {link}\nError: {e}")
+                invalid_links.append(k)
+                continue
             current_ids.append(qid)
 
-        return current_ids
+        return current_ids, invalid_links
 
     def crawl_status(
         self,

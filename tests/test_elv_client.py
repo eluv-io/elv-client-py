@@ -2,7 +2,7 @@ import json
 import shutil
 import time
 from pathlib import Path
-from copy import copy
+from copy import copy, deepcopy
 
 from requests.exceptions import HTTPError
 
@@ -539,6 +539,7 @@ def test_crawl(client, crawl_token, config):
 def test_update_site(client, site_token):
     """Test site update operation"""
     site_qid = 'iq__3qRppmKKEJjrsYxgwpKtiejZuout'
+    site_qlib = 'ilib2hqtVe6Ngwa7gM4uLMFzjJapJsTd'
     new_contents = ["iq__42WgpoYgLTyyn4MSTejY3Y4uj81o", "iq__44ExhjEWkHXtppFje9ttE2cpJcnD", "BAD_ID"]
     remove_contents = ["iq__AcgxshZahq6zM9QejDnMqs1HAjm"]
 
@@ -551,12 +552,12 @@ def test_update_site(client, site_token):
 
     assert isinstance(result, dict)
     assert 'message' in result
-    assert 'failed' in result
-    assert isinstance(result['failed'], list)
+    assert 'warnings' in result
+    assert isinstance(result['warnings'], list)
 
-    assert 'BAD_ID' in result['failed']
+    assert 'BAD_ID' in result['warnings'][0]
     
-    assert "Failed to add some links" in result['message']
+    assert "Failed to add some contents" in result['warnings'][0]
     
     current_site_map = client.content_object_metadata(
         write_token=site_token, 
@@ -581,6 +582,41 @@ def test_update_site(client, site_token):
     assert "iq__AcgxshZahq6zM9QejDnMqs1HAjm" not in site_qids
 
     assert "BAD_ID" not in site_qids
+
+    ## Testing the _get_current_ids method standalone
+    current_ids, invalid_ids = client._get_current_ids(site_qwt=site_token)
+    assert len(invalid_ids) == 0
+    assert len(current_ids) == len(site_qids)
+
+    sm = client.content_object_metadata(
+        write_token=site_token,
+        metadata_subtree='site_map/searchables',
+        resolve_links=False
+    )
+
+    site_meta = deepcopy(sm)
+
+    site_meta["2"]["/"] = "/qfab/hq__FQu7V6cVxMtUwjWXYtqxzePXXgZC76SAxUc8f15tq3gFFwHE3dEjEcdEs2AMHg4XomE2ofHzoJ/meta"
+
+    client.replace_metadata(
+        write_token=site_token,
+        metadata_subtree='site_map/searchables',
+        metadata=site_meta,
+        library_id=site_qlib
+    )
+
+    current_ids, invalid_links = client._get_current_ids(site_qwt=site_token)
+    assert len(invalid_links) == 1
+    assert "2" in invalid_links
+    assert len(current_ids) == len(site_qids) - 1  # One invalid
+
+    # set back
+    client.replace_metadata(
+        write_token=site_token,
+        metadata_subtree='site_map/searchables',
+        metadata=sm,
+        library_id=site_qlib
+    )
 
 def test_http_error_with_invalid_object_id(client):
     """Test that HTTPError messages include JSON error body for invalid object ID"""
