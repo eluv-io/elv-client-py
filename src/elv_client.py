@@ -28,8 +28,6 @@ class ElvClient():
 
         self.semaphore = asyncio.Semaphore(
             config["client"]["max_concurrent_requests"])
-        self.loop = asyncio.new_event_loop()
-        self.thread_id = threading.get_ident()
 
     @staticmethod
     def from_configuration_url(config_url: str, static_token: str) -> 'ElvClient':
@@ -816,7 +814,6 @@ class ElvClient():
         Returns:
             List of ValueErrors for each file download, or None if successful
         """
-        self._check_thread()
 
         if not os.path.exists(dest_path):
             os.makedirs(dest_path)
@@ -831,22 +828,13 @@ class ElvClient():
                                                       version_hash=version_hash,
                                                       write_token=write_token))
             return await asyncio.gather(*tasks, return_exceptions=True)
+        
+        loop = asyncio.new_event_loop()
 
-        return self.loop.run_until_complete(fetch_all(file_jobs))
-
-    def _check_thread(self):
-        """Ensure the client is only accessed from the same thread."""
-        if threading.get_ident() != self.thread_id:
-            raise RuntimeError(
-                "ElvClient currently only supports single-threaded access for async operations.")
+        return loop.run_until_complete(fetch_all(file_jobs))
 
     def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         """Set a commit message for a content object."""
         commit_data = {"commit": {"message": message, "timestamp": datetime.now(
         ).isoformat(timespec='microseconds') + 'Z'}}
         self.merge_metadata(write_token, commit_data, library_id=library_id)
-
-    def __del__(self):
-        if self.loop.is_running():
-            self.loop.stop()
-        self.loop.close()
