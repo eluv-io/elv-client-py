@@ -12,6 +12,7 @@ setup(
         'base58',
         'loguru',
         'pyyaml',
-        'tqdm'
+        'tqdm',
+        'dacite',
     ]
 )

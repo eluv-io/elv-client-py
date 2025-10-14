@@ -1,7 +1,10 @@
 
 import asyncio
+import base64
+import json
 import os
 from dataclasses import dataclass
+import dacite
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Tuple
 from urllib.parse import quote
@@ -838,13 +841,21 @@ class ElvClient():
         ).isoformat(timespec='microseconds') + 'Z'}}
         self.merge_metadata(write_token, commit_data, library_id=library_id)
 
+    @dataclass
+    class LiveMediaSegment:
+        seg_num: int
+        nominal_duration: float
+        nominal_ts: float
+        actual_duration: float
+        actual_ts: float
+
     def live_media_segment(
             self,
             object_id: str,
             dest_path: str,
             segment_idx: int | None = None, 
             segment_length: int = 4,
-    ) -> None:
+    ) -> LiveMediaSegment:
         url = self._get_host()
         url = build_url(url, 'q', object_id, 'rep', 'media', 'segment')
         resp = requests.get(
@@ -860,3 +871,13 @@ class ElvClient():
                     file.write(chunk)
         else:
             resp.raise_for_status()
+        info = resp.headers.get('X-Content-Fabric-Segment-Info')
+        # base64 decode
+        if info is None:
+            raise ValueError("No segment info in response")
+        info = base64.b64decode(info).decode('utf-8')
+        segment_info = dacite.from_dict(
+            data_class=ElvClient.LiveMediaSegment,
+            data=json.loads(info)
+        )
+        return segment_info
