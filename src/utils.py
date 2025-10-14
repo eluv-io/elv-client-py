@@ -1,6 +1,9 @@
+from typing import Any, Dict, Tuple
+import json
+
 import base58
 import requests
-from typing import Dict, Tuple, Any
+
 
 def decode_version_hash(version_hash: str) -> Dict[str, str]:
     if not (version_hash.startswith("hq__") or version_hash.startswith("tq")):
@@ -17,7 +20,9 @@ def decode_version_hash(version_hash: str) -> Dict[str, str]:
     object_id = "iq__" + base58.b58encode(remaining_bytes).decode("utf-8")
 
     # Part hash is B58 encoded version hash without the ID
-    part_hash = "hqp_" + base58.b58encode(digest_bytes + bytes[:len(bytes) - len(remaining_bytes)]).decode("utf-8")
+    part_hash = "hqp_" + \
+        base58.b58encode(
+            digest_bytes + bytes[:len(bytes) - len(remaining_bytes)]).decode("utf-8")
 
     return {
         "digest": digest,
@@ -25,8 +30,8 @@ def decode_version_hash(version_hash: str) -> Dict[str, str]:
         "objectId": object_id,
         "partHash": part_hash
     }
+    
 
-# decodes the variable integer data and returns the number of bytes
 def varint_decode(data: bytes) -> Tuple[int, int]:
     result = 0
     shift = 0
@@ -37,9 +42,11 @@ def varint_decode(data: bytes) -> Tuple[int, int]:
         shift += 7
     return result, data
 
+
 def hash_to_address(hash: str) -> str:
     hash = hash[4:]
     return format_address(f'0x{base58.b58decode(hash).hex()}')
+
 
 def format_address(address: str) -> str:
     address = address.strip()
@@ -49,29 +56,58 @@ def format_address(address: str) -> str:
 
     return address.lower()
 
+
 def address_to_hash(address: str) -> str:
     address = address[2:]
     return base58.b58encode(bytes.fromhex(address)).decode('utf-8')
 
+
 def address_to_library_id(address: str) -> str:
     return f'ilib{address_to_hash(address)}'
 
-def get(url: str, params: Dict[str, Any]=None, headers: Dict[str, str]=None) -> Any:
-    response = requests.get(url, params=params, headers=headers)
 
+def _request_json(
+    method: str,
+    url: str,
+    params: dict | None = None,
+    body: dict | None = None,
+    headers: dict | None = None,
+) -> Any:
+    """
+    Perform http request expecting a json response. Raises HTTPError on failure containing the status code, and 
+    the json body of response if available.
+    """
+    response = requests.request(
+        method=method,
+        url=url,
+        params=params,
+        json=body,
+        headers=headers,
+    )
     response.raise_for_status()
-
     return response.json()
 
-def post(url: str, params: Dict[str, Any]=None, body: Dict[str, Any]=None, headers: Dict[str, str]=None) -> Any:
-    response = requests.post(url, params=params, headers=headers, json=body)
+def get_json(
+        url: str, 
+        params: dict | None = None, 
+        headers: dict | None = None
+) -> Any:
+    return _request_json("GET", url, params=params, headers=headers)
 
-    response.raise_for_status()
 
-    return response.json()
+def post_json(
+    url: str,
+    params: dict | None = None,
+    body: dict | None = None,
+    headers: dict | None = None,
+) -> Any:
+    return _request_json("POST", url, params=params, body=body, headers=headers)
+
 
 def build_url(*args) -> str:
+    """Helper to join URL parts."""
     return "/".join(args)
+
 
 def get_from_path(data, path, delimiter='/'):
     if not path or path == "/":

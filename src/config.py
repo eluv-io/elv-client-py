@@ -1,5 +1,7 @@
-import yaml
 import os
+
+import yaml
+
 
 def load_config():
     filedir = os.path.dirname(os.path.abspath(__file__))
