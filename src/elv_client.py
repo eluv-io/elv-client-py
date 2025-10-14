@@ -1,7 +1,6 @@
 
 import asyncio
 import os
-import threading
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Tuple
@@ -838,3 +837,26 @@ class ElvClient():
         commit_data = {"commit": {"message": message, "timestamp": datetime.now(
         ).isoformat(timespec='microseconds') + 'Z'}}
         self.merge_metadata(write_token, commit_data, library_id=library_id)
+
+    def live_media_segment(
+            self,
+            object_id: str,
+            dest_path: str,
+            segment_idx: int | None = None, 
+            segment_length: int = 4,
+    ) -> None:
+        url = self._get_host()
+        url = build_url(url, 'q', object_id, 'rep', 'media', 'segment')
+        resp = requests.get(
+            url, 
+            params={
+                "authorization": self.token,
+            }, 
+            stream=True
+        )
+        if resp.status_code == 200:
+            with open(dest_path, "wb") as file:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    file.write(chunk)
+        else:
+            resp.raise_for_status()

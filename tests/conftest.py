@@ -1,5 +1,8 @@
 import os
 import pytest
+import tempfile
+import shutil
+
 from src.elv_client import ElvClient
 
 
@@ -55,6 +58,27 @@ def config():
             "mezz": {"library": "ilib4JvLVStm2pDMa89332h8tNqUCZvY",
                      "12AngryMen": "iq__b7ZBuXBYAqiwCc5oirFZEdfWY6v"},
             "index": {"library": "ilib2hqtVe6Ngwa7gM4uLMFzjJapJsTd", "qid": "iq__3qRppmKKEJjrsYxgwpKtiejZuout"},
+            "livestream": {"library": "",
+                           "qid": "iq__HPzDaWpfmQzj2Afa3XFq2cpun5n"}
         }
     }
 
+@pytest.fixture
+def live_download_client():
+    """
+    Fixture that provides a read-only ElvClient instance.
+    Requires LIVE_AUTH environment variable to be set.
+    """
+    auth_token = os.getenv('LIVE_AUTH')
+    if not auth_token:
+        pytest.skip("LIVE_AUTH environment variable not set")
+    
+    fabric_config = 'https://host-76-74-29-5.contentfabric.io/config?self&qspace=main'
+    return ElvClient.from_configuration_url(fabric_config, auth_token)
+
+@pytest.fixture
+def temp_dir():
+    """Create a temporary directory for tests"""
+    temp_path = tempfile.mkdtemp()
+    yield temp_path
+    shutil.rmtree(temp_path, ignore_errors=True)
