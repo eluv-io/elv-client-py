@@ -52,8 +52,6 @@ class ElvClient():
         if not fabric_uris:
             raise ValueError("No Fabric URIs available in the configuration")
         search_uris = services.get("search_v2", [])
-        if not search_uris:
-            logger.warning("No Search URIs available in the configuration")
         return ElvClient(fabric_uris, search_uris, static_token)
 
     def set_static_token(self, token: str):
