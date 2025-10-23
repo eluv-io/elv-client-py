@@ -842,10 +842,10 @@ class ElvClient():
     @dataclass
     class LiveMediaSegment:
         seg_num: int
-        nominal_duration: float
-        nominal_ts: float
-        actual_duration: float
-        actual_ts: float
+        nominal_duration: int
+        nominal_ts: int
+        actual_duration: int
+        actual_ts: int
 
     def live_media_segment(
             self,
@@ -860,6 +860,8 @@ class ElvClient():
             url, 
             params={
                 "authorization": self.token,
+                "num": segment_idx,
+                "duration": segment_length
             }, 
             stream=True
         )
