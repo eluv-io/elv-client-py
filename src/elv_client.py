@@ -842,17 +842,17 @@ class ElvClient():
     @dataclass
     class LiveMediaSegment:
         seg_num: int
-        nominal_duration: int
+        nominal_duration: float
         nominal_ts: int
-        actual_duration: int
+        actual_duration: float
         actual_ts: int
 
     def live_media_segment(
-            self,
-            object_id: str,
-            dest_path: str,
-            segment_idx: int | None = None, 
-            segment_length: int = 4,
+        self,
+        object_id: str,
+        dest_path: str,
+        segment_idx: int | None = None, 
+        segment_length: int = 4,
     ) -> LiveMediaSegment:
         url = self._get_host()
         url = build_url(url, 'q', object_id, 'rep', 'media', 'segment')
