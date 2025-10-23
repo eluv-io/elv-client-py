@@ -29,6 +29,7 @@ def test_live_download(live_download_client: ElvClient, config, temp_dir):
     assert os.path.exists(output_path_2)
     assert os.path.getsize(output_path_2) > 1e6
     assert info_2 is not None
+    assert info_2.seg_offset_millis > 0
     # check raw data is different
 
     with open(output_path_2, 'rb') as f:

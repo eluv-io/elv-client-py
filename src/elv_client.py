@@ -842,6 +842,7 @@ class ElvClient():
     @dataclass
     class LiveMediaSegment:
         seg_num: int
+        seg_offset_millis: int
         nominal_duration: float
         nominal_ts: int
         actual_duration: float
