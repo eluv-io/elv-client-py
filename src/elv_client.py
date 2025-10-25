@@ -627,7 +627,7 @@ class ElvClient():
                     data_buffer += file.read()[piece.off:piece.off + piece.len]
 
             # upload buffer
-            upload_url = build_url(self._get_host() 'qlibs', library_id, 'q', write_token, 'file_jobs', job_id, file_job_id)
+            upload_url = build_url(self._get_host(), 'qlibs', library_id, 'q', write_token, 'file_jobs', job_id, file_job_id)
             headers = {"Accept": "application/json",
                     "Content-Type": "application/octet-stream"}
             response = requests.post(upload_url, params={
