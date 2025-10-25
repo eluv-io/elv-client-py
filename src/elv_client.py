@@ -536,6 +536,13 @@ class ElvClient():
         out_path: str
         mime_type: str
 
+    @dataclass
+    class FileJobPieceInfo:
+        """Data class representing a piece of a file job."""
+        path: str
+        len: int
+        off: int
+
     def upload_files(
         self,
         write_token: str,
@@ -591,42 +598,46 @@ class ElvClient():
                     "Provided write token has already been used to upload files") from e
             raise e
         job_data = response.json()
-        job_id, file_job_id = job_data["id"], job_data["jobs"][0]
-        assert len(job_data["jobs"]) == 1, "Expected only one file job"
+        job_id = job_data["id"]
+        ##assert len(job_data["jobs"]) == 1, "Expected only one file job"
 
-        url = build_url(self._get_host(), 'qlibs', library_id, 'q',
-                        write_token, 'file_jobs', job_id, 'uploads', file_job_id)
-        next_start = 0
-        ordered_paths = []
-        # iterate through the pages of file jobs
-        while next_start != -1:
-            response = requests.get(
-                url, params={"start": next_start, "authorization": self.token})
-            response.raise_for_status()
-            file_info = response.json()
-            next_start = file_info["next"]
-            ordered_paths.extend(file["path"] for file in file_info["files"])
+        logger.debug(f"file jobs {job_data['jobs']}")
+        for file_job_id in job_data["jobs"]:
 
-        # load files into single buffer
-        data_buffer = bytearray()
-        for path in ordered_paths:
-            job = path_to_job[path]
-            with open(job.local_path, 'rb') as file:
-                data_buffer += file.read()
+            url = build_url(self._get_host(), 'qlibs', library_id, 'q',
+                            write_token, 'file_jobs', job_id, 'uploads', file_job_id)
 
-        # upload buffer
-        upload_url = build_url(self._get_host(
-        ), 'qlibs', library_id, 'q', write_token, 'file_jobs', job_id, file_job_id)
-        headers = {"Accept": "application/json",
-                   "Content-Type": "application/octet-stream"}
-        response = requests.post(upload_url, params={
-                                 "authorization": self.token}, headers=headers, data=data_buffer)
-        try:
-            response.raise_for_status()
-        except HTTPError as e:
-            logger.error(f"Failed to upload file {job.local_path}: {e}")
-            logger.error(response.text)
-            raise e
+            next_start = 0
+            ordered_paths = []
+            # iterate through the pages of file jobs
+            while next_start != -1:
+                response = requests.get(
+                    url, params={"start": next_start, "authorization": self.token})
+                response.raise_for_status()
+                file_info = response.json()
+                next_start = file_info["next"]
+                ordered_paths.extend(ElvClient.FileJobPieceInfo(file["path"], file["len"], file["off"]) for file in file_info["files"])
+                ##for f in file_info["files"]: logger.debug(json.dumps(f))
+
+            # load files into single buffer
+            data_buffer = bytearray()
+            for piece in ordered_paths:
+                job = path_to_job[piece.path]
+                with open(job.local_path, 'rb') as file:
+                    data_buffer += file.read()[piece.off:piece.off + piece.len]
+
+            # upload buffer
+            upload_url = build_url(self._get_host() 'qlibs', library_id, 'q', write_token, 'file_jobs', job_id, file_job_id)
+            headers = {"Accept": "application/json",
+                    "Content-Type": "application/octet-stream"}
+            response = requests.post(upload_url, params={
+                                    "authorization": self.token}, headers=headers, data=data_buffer)
+            try:
+                response.raise_for_status()
+            except HTTPError as e:
+                logger.error(f"Failed to upload file {job.local_path}: {e}")
+                logger.error(response.text)
+                raise e
 
         if finalize:
             self.finalize_files(write_token, library_id)
