@@ -9,6 +9,7 @@ def test_live_download(live_download_client: ElvClient, config, temp_dir):
     assert os.path.exists(output_path)
     assert os.path.getsize(output_path) > 1e6
     assert info is not None
+    assert info.seg_time_epoch_millis > 1762487118009
 
     with open(output_path, 'rb') as f:
         data_1 = f.read()

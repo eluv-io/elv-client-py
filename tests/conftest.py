@@ -59,7 +59,7 @@ def config():
                      "12AngryMen": "iq__b7ZBuXBYAqiwCc5oirFZEdfWY6v"},
             "index": {"library": "ilib2hqtVe6Ngwa7gM4uLMFzjJapJsTd", "qid": "iq__3qRppmKKEJjrsYxgwpKtiejZuout"},
             "livestream": {"library": "",
-                           "qid": "iq__HPzDaWpfmQzj2Afa3XFq2cpun5n"}
+                           "qid": "iq__4DhfZqxgTELQ62tnXi89ShtRnpJh"}
         }
     }
 
@@ -73,7 +73,7 @@ def live_download_client():
     if not auth_token:
         pytest.skip("LIVE_AUTH environment variable not set")
     
-    fabric_config = 'https://host-76-74-34-204.contentfabric.io/config?self&qspace=main'
+    fabric_config = 'https://host-76-74-29-5.contentfabric.io/config?self&qspace=main'
     return ElvClient.from_configuration_url(fabric_config, auth_token)
 
 @pytest.fixture
