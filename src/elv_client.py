@@ -1,4 +1,3 @@
-
 import asyncio
 import base64
 import json
@@ -23,26 +22,32 @@ class ElvClient():
     """Client for using the Eluvio Content Fabric API.
     """
 
-    def __init__(self, fabric_uris: List[str], search_uris: List[str], static_token: str = ""):
+    def __init__(self, fabric_uris: List[str], search_uris: List[str], static_token: str = "", timeout: float = 30.0):
         self.fabric_uris = fabric_uris
         self.search_uris = search_uris
         self.token = static_token
+        self.timeout = timeout
 
         self.semaphore = asyncio.Semaphore(
             config["client"]["max_concurrent_requests"])
 
     @staticmethod
-    def from_configuration_url(config_url: str, static_token: str) -> 'ElvClient':
+    def from_configuration_url(config_url: str, static_token: str, timeout: float = 30.0) -> 'ElvClient':
         """Create an ElvClient instance from a fabric config url and an auth token.
+
+        Args:
+            config_url: The fabric configuration URL
+            static_token: The authentication token
+            timeout: Request timeout in seconds. Defaults to 30.0
 
         Example:
         ```python
         client = ElvClient.from_configuration_url(
-            "main.net955305.contentfabric.io/config", "<AUTH_TOKEN>")
+            "main.net955305.contentfabric.io/config", "<AUTH_TOKEN>", timeout=60.0)
         ```
         """
 
-        fconfig = get_json(config_url)
+        fconfig = get_json(config_url, timeout=timeout)
         services = fconfig.get("network", {}).get("services", {})
         if len(services) == 0:
             raise ValueError("No services available in the configuration")
@@ -52,7 +57,7 @@ class ElvClient():
         if not fabric_uris:
             raise ValueError("No Fabric URIs available in the configuration")
         search_uris = services.get("search_v2", [])
-        return ElvClient(fabric_uris, search_uris, static_token)
+        return ElvClient(fabric_uris, search_uris, static_token, timeout)
 
     def set_static_token(self, token: str):
         """Set a static token for the client to use for all requests."""
@@ -133,6 +138,9 @@ class ElvClient():
             host (Optional[str]): Host URL to use for the request.
         """
 
+        # occasionally bitcode methods can take a long time, use increased timeout
+        timeout = 300
+
         if not self.token:
             raise ValueError("No token available")
 
@@ -154,9 +162,9 @@ class ElvClient():
         url = build_url(host, path)
 
         if method_type == "GET":
-            return get_json(url, params={"authorization": self.token, **params})
+            return get_json(url, params={"authorization": self.token, **params}, timeout=timeout)
         
-        return post_json(url, body=params, params={"authorization": self.token})
+        return post_json(url, body=params, params={"authorization": self.token}, timeout=timeout)
 
     def search(
         self,
@@ -430,7 +438,7 @@ class ElvClient():
                 "Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', qhit, 'rep', 'parts_download')
         params = {"part_hash": part_hash, "authorization": self.token}
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, timeout=self.timeout)
         if response.status_code == 200:
             with open(save_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -459,7 +467,7 @@ class ElvClient():
                 "Object ID, Version Hash, or Write Token must be specified")
         url = build_url(url, 'q', id, 'data', part_hash)
         params = {"authorization": self.token}
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, timeout=self.timeout)
         if response.status_code == 200:
             with open(save_path, 'wb') as file:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -496,7 +504,8 @@ class ElvClient():
             url,
             params={"authorization": self.token},
             headers=headers,
-            json=metadata
+            json=metadata,
+            timeout=self.timeout
         )
 
         response.raise_for_status()
@@ -525,7 +534,8 @@ class ElvClient():
             url,
             params={"authorization": self.token},
             headers=headers,
-            json=metadata
+            json=metadata,
+            timeout=self.timeout
         )
         response.raise_for_status()
 
@@ -579,7 +589,8 @@ class ElvClient():
             url,
             params={"authorization": self.token},
             headers=headers,
-            json={"ops": ops}
+            json={"ops": ops},
+            timeout=self.timeout
         )
         try:
             response.raise_for_status()
@@ -601,7 +612,7 @@ class ElvClient():
         # iterate through the pages of file jobs
         while next_start != -1:
             response = requests.get(
-                url, params={"start": next_start, "authorization": self.token})
+                url, params={"start": next_start, "authorization": self.token}, timeout=self.timeout)
             response.raise_for_status()
             file_info = response.json()
             next_start = file_info["next"]
@@ -620,7 +631,7 @@ class ElvClient():
         headers = {"Accept": "application/json",
                    "Content-Type": "application/octet-stream"}
         response = requests.post(upload_url, params={
-                                 "authorization": self.token}, headers=headers, data=data_buffer)
+                                 "authorization": self.token}, headers=headers, data=data_buffer, timeout=self.timeout)
         try:
             response.raise_for_status()
         except HTTPError as e:
@@ -637,7 +648,7 @@ class ElvClient():
         """Finalizes the file jobs for a given write token."""
         url = build_url(self._get_host(), 'qlibs',
                         library_id, 'q', write_token, 'files')
-        response = requests.post(url, params={"authorization": self.token})
+        response = requests.post(url, params={"authorization": self.token}, timeout=self.timeout)
         try:
             response.raise_for_status()
         except HTTPError as e:
@@ -713,7 +724,8 @@ class ElvClient():
         response = requests.get(
             url,
             params={"authorization": self.token},
-            stream=True
+            stream=True,
+            timeout=self.timeout
         )
         if response.status_code == 200:
             with open(dest_path, "wb") as file:
@@ -744,7 +756,9 @@ class ElvClient():
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         except PermissionError as e:
             return PermissionError(f"Failed to create output directory {os.path.dirname(dest_path)}: {e}")
-        async with aiohttp.ClientSession() as session:
+        
+        timeout = aiohttp.ClientTimeout(total=self.timeout)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with self.semaphore:
                 async with session.get(url, params={"authorization": self.token}) as response:
                     if response.status != 200:
@@ -865,7 +879,8 @@ class ElvClient():
                 "num": segment_idx,
                 "duration": segment_length
             }, 
-            stream=True
+            stream=True,
+            timeout=self.timeout
         )
         if resp.status_code == 200:
             with open(dest_path, "wb") as file:

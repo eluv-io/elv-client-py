@@ -72,6 +72,7 @@ def _request_json(
     params: dict | None = None,
     body: dict | None = None,
     headers: dict | None = None,
+    timeout: float = 30.0,
 ) -> Any:
     """
     Perform http request expecting a json response. Raises HTTPError on failure containing the status code, and 
@@ -83,6 +84,7 @@ def _request_json(
         params=params,
         json=body,
         headers=headers,
+        timeout=timeout,
     )
     response.raise_for_status()
     return response.json()
@@ -90,9 +92,10 @@ def _request_json(
 def get_json(
         url: str, 
         params: dict | None = None, 
-        headers: dict | None = None
+        headers: dict | None = None,
+        timeout: float = 30.0
 ) -> Any:
-    return _request_json("GET", url, params=params, headers=headers)
+    return _request_json("GET", url, params=params, headers=headers, timeout=timeout)
 
 
 def post_json(
@@ -100,8 +103,9 @@ def post_json(
     params: dict | None = None,
     body: dict | None = None,
     headers: dict | None = None,
+    timeout: float = 30.0,
 ) -> Any:
-    return _request_json("POST", url, params=params, body=body, headers=headers)
+    return _request_json("POST", url, params=params, body=body, headers=headers, timeout=timeout)
 
 
 def build_url(*args) -> str:
