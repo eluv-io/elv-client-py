@@ -847,6 +847,62 @@ class ElvClient():
 
         return loop.run_until_complete(fetch_all(file_jobs))
 
+    def get_write_token(
+        self,
+        object_id: str,
+        library_id: Optional[str] = None,
+        options: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Create a draft (write token) for a content object with the given object ID.
+
+        The write token is the destination for all edits (metadata writes, file uploads) until the
+        draft is finalized (different from files being finalized).
+        All writes must go to the fabric node that issued the token, so the
+        returned token should be used with the client instance that created it.
+
+        Args:
+            object_id (str): Content object ID to create the draft for.
+            library_id (Optional[str]): Library ID of the content object. Looked up if not provided.
+            options (Optional[Dict[str, Any]]): Request body for the draft. All fields are optional:
+                "type", "object_type", "meta", "copy_from", "tags", "groups", "unique_groups",
+                and "query_fields". Defaults to an empty body.
+
+        Example:
+            ```python
+            client = ElvClient.from_configuration_url("main.net955305.contentfabric.io/config", "<AUTH_TOKEN>")
+            write_token = client.get_write_token(object_id="iq__...")
+            ```
+        """
+        if not self.token:
+            raise ValueError("No token available")
+
+        if library_id is None:
+            library_id = self.content_object_library_id(object_id=object_id)
+
+        url = build_url(self._get_host(), 'qlibs', library_id, 'q', object_id)
+        headers = {"Accept": "application/json",
+                   "Content-Type": "application/json"}
+        response = requests.put(
+            url,
+            params={"authorization": self.token},
+            headers=headers,
+            json=options or {},
+            timeout=self.timeout
+        )
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            logger.error(f"Failed to create write token for {object_id}: {e}")
+            logger.error(response.text)
+            raise e
+
+        write_token = response.json().get("write_token")
+        if not write_token:
+            raise ValueError(
+                f"No write token returned for content object {object_id}")
+
+        return write_token
+
     def set_commit_message(self, write_token: str, message: str, library_id: str) -> None:
         """Set a commit message for a content object."""
         commit_data = {"commit": {"message": message, "timestamp": datetime.now(

@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name = "elv-client-py",
     version='0.1',
-    packages=['elv_client_py'],
+    packages=['elv_client_py', 'elv_client_py.ground_truth'],
     include_package_data=True,
     package_data={'elv_client_py': ['config.yml']},
     install_requires=[
